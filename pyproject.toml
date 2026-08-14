@@ -1,0 +1,16 @@
+[project]
+name = "hhgoa-rag"
+version = "0.1.0"
+description = "HH Goa 2026 Task 2: Voice-Enabled RAG System"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100

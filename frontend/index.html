@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HHGoa RAG — Voice-Enabled Search</title>
+    <meta name="description" content="Voice-Enabled RAG System for MSMARCO-XI Indic Languages">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header id="app-header">
+        <h1>HHGoa RAG</h1>
+        <div id="status-indicator" class="status disconnected">
+            <span id="status-dot" class="dot"></span>
+            <span id="status-text">Checking...</span>
+        </div>
+    </header>
+
+    <main id="app-main">
+        <form id="query-form">
+            <div class="input-group">
+                <input
+                    type="text"
+                    id="query-input"
+                    placeholder="Ask a question..."
+                    autocomplete="off"
+                    required
+                />
+                <button type="submit" id="submit-btn">Search</button>
+            </div>
+        </form>
+
+        <section id="response-section" class="hidden">
+            <div id="answer-card" class="card">
+                <h2>Answer</h2>
+                <p id="answer-text"></p>
+            </div>
+
+            <div id="sources-card" class="card hidden">
+                <h2>Sources</h2>
+                <ul id="sources-list"></ul>
+            </div>
+
+            <div id="latency-card" class="card">
+                <h2>Latency</h2>
+                <table id="latency-table">
+                    <thead>
+                        <tr>
+                            <th>Component</th>
+                            <th>Time (ms)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="latency-body"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <div id="error-section" class="hidden">
+            <p id="error-text" class="error"></p>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

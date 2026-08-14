@@ -1,0 +1,35 @@
+# Default configuration for HHGoa Voice-Enabled RAG
+app:
+  name: HHGoa-RAG
+  version: 0.1.0
+  debug: false
+
+logging:
+  level: INFO
+  format: json
+
+latency:
+  # Three separately instrumented metrics for engineering benchmarks
+  metrics:
+    rag_latency: "query_processing + embedding + retrieval + reranking + generation + guardrails"
+    stt_latency: "isolated speech-to-text processing time"
+    e2e_latency: "stt_latency + rag_latency (server receipt of audio to final response)"
+  # Benchmark note: microphone/user speech duration and browser audio-capture time are excluded
+  rag_components:
+    - query_processing
+    - embedding
+    - retrieval
+    - reranking
+    - generation
+    - guardrails
+  stt_components:
+    - stt
+  e2e_components:
+    - stt
+    - query_processing
+    - embedding
+    - retrieval
+    - reranking
+    - generation
+    - guardrails
+
