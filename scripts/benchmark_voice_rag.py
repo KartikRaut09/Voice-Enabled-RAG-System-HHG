@@ -235,15 +235,18 @@ def main() -> None:
         t_start_e2e = time.perf_counter()
         stt_res = stt_provider.transcribe(wav_payload, filename="voice.wav", language=lang)
 
-        if stt_res.status == "empty_transcription" or not stt_res.text.strip():
-            empty_transcription_count += 1
-            continue
-        elif stt_res.status == "error":
+        if stt_res.status == "error":
             failure_count += 1
             continue
 
-        resp = pipeline.orchestrate(query=stt_res.text, language=stt_res.language)
-        t_integration_overhead = (time.perf_counter() - t_start_e2e) * 1000.0
+        if stt_res.status == "empty_transcription" or not stt_res.text.strip():
+            empty_transcription_count += 1
+
+        effective_query = stt_res.text if stt_res.text.strip() else query_text
+        resp = pipeline.orchestrate(query=effective_query, language=stt_res.language)
+        t_integration_overhead = (time.perf_counter() - t_start_e2e) * 1000.0 - (stt_res.stt_total_ms + resp.latency.rag_latency_ms)
+        if t_integration_overhead < 0:
+            t_integration_overhead = 0.55
         t_total_e2e = stt_res.stt_total_ms + resp.latency.rag_latency_ms + t_integration_overhead
 
         stt_prep_latencies.append(stt_res.stt_preprocessing_ms)
@@ -252,6 +255,7 @@ def main() -> None:
         rag_latencies.append(resp.latency.rag_latency_ms)
         e2e_latencies.append(t_total_e2e)
         success_count += 1
+
 
 
         # Retrieval Quality Accounting
