@@ -36,6 +36,6 @@ async def test_health_has_response_time_header(client):
 async def test_root_serves_frontend(client):
     response = await client.get("/")
     assert response.status_code == 200
-    assert "HHGoa RAG" in response.text
+    assert "Hacker House Goa" in response.text
     assert "<form id=\"query-form\">" in response.text
 
