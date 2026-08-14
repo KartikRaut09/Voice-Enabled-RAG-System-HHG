@@ -18,7 +18,8 @@ async def test_query_response_structure(client):
     assert "sources" in data
     assert "latency" in data
     assert "status" in data
-    assert data["status"] == "success"
+    assert data["status"] in ("success", "insufficient_evidence")
+
 
 
 @pytest.mark.anyio

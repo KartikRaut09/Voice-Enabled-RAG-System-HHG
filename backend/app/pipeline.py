@@ -187,7 +187,7 @@ class RAGPipeline:
         if not context_items or retrieval_mode == "failed":
             timings = tracker.to_dict()
             latency = self._build_latency(timings)
-            status_val = "error" if retrieval_mode == "failed" else "success"
+            status_val = "error" if retrieval_mode == "failed" else "insufficient_evidence"
             return QueryResponse(
                 request_id=req_id,
                 query=q_input.original_query,
@@ -203,6 +203,7 @@ class RAGPipeline:
                     "insufficient_evidence": True,
                 },
             )
+
 
 
         # 5. LLM Generation
