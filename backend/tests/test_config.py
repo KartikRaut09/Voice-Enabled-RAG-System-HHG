@@ -9,8 +9,10 @@ def test_settings_loads():
 
 
 def test_settings_defaults():
-    settings = get_settings()
+    from backend.app.config import Settings
+    settings = Settings(_env_file=None)
     assert settings.DEBUG is False
     assert settings.LOG_LEVEL == "INFO"
     assert settings.LLM_PROVIDER == ""  # not locked to any provider
     assert settings.EMBEDDING_MODEL == ""  # not locked to any model
+
