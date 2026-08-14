@@ -145,7 +145,7 @@ def main() -> None:
         query_text = rec["query"]
         lang = rec.get("target_lang", "unknown")
         gold_parent_ids = {
-            p["passage_id"]
+            str(p["passage_id"])
             for p in rec.get("passages", [])
             if p.get("is_selected", False)
         }
@@ -166,9 +166,10 @@ def main() -> None:
         context_latencies.append(resp.latency.reranking_ms)
         gen_latencies.append(resp.latency.generation_ms)
 
-        retrieved_pids = resp.pipeline_metadata.get("retrieved_parent_ids") or [
+        raw_retrieved = resp.pipeline_metadata.get("retrieved_parent_ids") or [
             s.metadata.get("parent_passage_id") for s in resp.sources
         ]
+        retrieved_pids = [str(pid) for pid in raw_retrieved if pid is not None]
 
         # Retrieval metrics
         r1 = 1.0 if any(pid in gold_parent_ids for pid in retrieved_pids[:1]) else 0.0
@@ -179,6 +180,7 @@ def main() -> None:
             if pid in gold_parent_ids:
                 mrr = 1.0 / r_idx
                 break
+
 
         r1_list.append(r1)
         r5_list.append(r5)
