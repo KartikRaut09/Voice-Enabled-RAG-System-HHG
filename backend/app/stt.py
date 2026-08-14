@@ -385,9 +385,28 @@ class GroqWhisperSTTProvider(STTProvider):
 
             w_lang = None
             if language:
-                w_lang = language.split("_")[0]
+                w_map = {
+                    "hin_Deva": "hi",
+                    "mar_Deva": "mr",
+                    "ben_Beng": "bn",
+                    "tam_Taml": "ta",
+                    "tel_Telu": "te",
+                    "hin": "hi",
+                    "mar": "mr",
+                    "ben": "bn",
+                    "tam": "ta",
+                    "tel": "te",
+                    "hi": "hi",
+                    "mr": "mr",
+                    "bn": "bn",
+                    "ta": "ta",
+                    "te": "te",
+                    "en": "en",
+                }
+                w_lang = w_map.get(language, language.split("_")[0])
 
             t_infer_start = time.perf_counter()
+
             with open(temp_path, "rb") as audio_file:
                 transcription = client.audio.transcriptions.create(
                     file=audio_file,

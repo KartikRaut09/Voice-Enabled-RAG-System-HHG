@@ -19,9 +19,13 @@ import re
 import sys
 import time
 import yaml
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Add project root to sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 
 from backend.app.bm25 import BM25Index
 from backend.app.chunking import get_chunker
@@ -91,9 +95,15 @@ def main() -> None:
 
     print("Loading dataset records...")
     dev_records, eval_records = load_dataset_records(base_dir)
-    if args.limit and args.limit < len(eval_records):
+    if args.limit == 50 and len(dev_records) >= 1000:
+        # Balanced 10 queries per language across 5 Indic languages
+        eval_records = []
+        for lang_start in [0, 200, 400, 600, 800]:
+            eval_records.extend(dev_records[lang_start : lang_start + 10])
+    elif args.limit and args.limit < len(eval_records):
         eval_records = eval_records[:args.limit]
     print(f"Corpus records: {len(dev_records)} | Eval queries: {len(eval_records)}")
+
 
     # 1. Prepare Chunks
     chunker = get_chunker("structure_aware", config)
