@@ -29,11 +29,13 @@ class Settings(BaseSettings):
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8000"]
 
     # Secrets / API Keys (loaded via env, never committed)
+    GROQ_API_KEY: str = ""
     SARVAM_API_KEY: str = ""
     LLM_API_KEY: str = ""
     LLM_PROVIDER: str = ""
     EMBEDDING_MODEL: str = ""
     VECTOR_DB_PATH: str = "data/indexes"
+
 
 
 @lru_cache

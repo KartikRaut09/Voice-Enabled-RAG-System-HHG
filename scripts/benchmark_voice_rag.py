@@ -67,12 +67,32 @@ def load_dataset_records(base_dir: Path) -> tuple[list[dict], list[dict]]:
 
 
 
+import argparse
+from backend.app.stt import GroqWhisperSTTProvider, MockSTTProvider, get_stt_provider
+
+
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Full Voice-RAG End-to-End Benchmark")
+    parser.add_argument("--provider", type=str, default="mock", choices=["mock", "whisper_local", "groq_whisper"], help="STT Provider to benchmark")
+    parser.add_argument("--limit", type=int, default=250, help="Number of evaluation queries to benchmark (default: 250)")
+    parser.add_argument("--warmup", type=int, default=3, help="Number of warmup queries (not recorded in metrics)")
+    args = parser.parse_args()
+
     base_dir = Path(__file__).resolve().parent.parent
     config = load_config()
 
+    print(f"STT Provider selected: {args.provider}")
+    if args.provider == "groq_whisper":
+        import os
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            print("ERROR: Real STT validation not executed — GROQ_API_KEY unavailable in environment.")
+            sys.exit(1)
+
     print("Loading dataset records...")
     dev_records, eval_records = load_dataset_records(base_dir)
+    if args.limit and args.limit < len(eval_records):
+        eval_records = eval_records[:args.limit]
     print(f"Corpus records: {len(dev_records)} | Eval queries: {len(eval_records)}")
 
     # 1. Prepare Chunks
@@ -123,16 +143,39 @@ def main() -> None:
     )
 
     # 4. Instantiate STT Provider
-    stt_provider = MockSTTProvider(simulated_latency_ms=18.5)
+    if args.provider == "groq_whisper":
+        stt_provider = GroqWhisperSTTProvider(model_name="whisper-large-v3-turbo")
+    elif args.provider == "whisper_local":
+        stt_provider = get_stt_provider("whisper_local", config)
+    else:
+        stt_provider = MockSTTProvider(simulated_latency_ms=18.5)
 
-    # 5. Run Full Voice-RAG Evaluation on 250 evaluation queries
-    print("\nBenchmarking Full End-to-End Voice-RAG Pipeline on 250 queries...")
+    # Warmup
+    if args.warmup > 0 and len(eval_records) > 0:
+        print(f"Executing {args.warmup} warmup queries...")
+        for w_idx in range(min(args.warmup, len(eval_records))):
+            w_rec = eval_records[w_idx]
+            w_tag = f"SIG_WARM_{w_idx:02d}"
+            if isinstance(stt_provider, MockSTTProvider):
+                stt_provider.register_transcript(w_tag, w_rec["query"], w_rec.get("target_lang", "unknown"))
+            w_wav = generate_synthetic_wav(duration_sec=1.0, signature_tag=w_tag)
+            try:
+                w_stt = stt_provider.transcribe(w_wav, filename="warmup.wav", language=w_rec.get("target_lang"))
+                if w_stt.text:
+                    pipeline.orchestrate(query=w_stt.text, language=w_stt.language)
+            except Exception:
+                pass
+
+    # 5. Run Full Voice-RAG Evaluation
+    print(f"\nBenchmarking Full End-to-End Voice-RAG Pipeline on {len(eval_records)} queries ({args.provider})...")
     r10_list: list[float] = []
     mrr_list: list[float] = []
     grounded_flags: list[bool] = []
     correctness_flags: list[bool] = []
     citation_valid_flags: list[bool] = []
 
+    stt_prep_latencies: list[float] = []
+    stt_infer_latencies: list[float] = []
     stt_latencies: list[float] = []
     rag_latencies: list[float] = []
     e2e_latencies: list[float] = []
@@ -145,7 +188,8 @@ def main() -> None:
         query_text = rec["query"]
         lang = rec.get("target_lang", "unknown")
         sig_tag = f"SIG_EVAL_{idx:04d}"
-        stt_provider.register_transcript(sig_tag, query_text, lang)
+        if isinstance(stt_provider, MockSTTProvider):
+            stt_provider.register_transcript(sig_tag, query_text, lang)
 
         gold_parent_ids = {
             str(p["passage_id"])
@@ -177,10 +221,13 @@ def main() -> None:
         t_integration_overhead = (time.perf_counter() - t_start_e2e) * 1000.0
         t_total_e2e = stt_res.stt_total_ms + resp.latency.rag_latency_ms + t_integration_overhead
 
+        stt_prep_latencies.append(stt_res.stt_preprocessing_ms)
+        stt_infer_latencies.append(stt_res.stt_inference_ms)
         stt_latencies.append(stt_res.stt_total_ms)
         rag_latencies.append(resp.latency.rag_latency_ms)
         e2e_latencies.append(t_total_e2e)
         success_count += 1
+
 
         # Retrieval Quality Accounting
         raw_retrieved = resp.pipeline_metadata.get("retrieved_parent_ids") or [
