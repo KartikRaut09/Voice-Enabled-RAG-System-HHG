@@ -263,16 +263,30 @@ class OpenAICompatibleProvider:
         else:
             self.base_url = "https://api.openai.com/v1"
 
+        self._client = None
+
+    def _get_client(self):
+        import httpx
+        if self._client is None or getattr(self._client, "is_closed", False):
+            limits = httpx.Limits(max_keepalive_connections=10, max_connections=20, keepalive_expiry=60.0)
+            self._client = httpx.Client(
+                timeout=self.timeout,
+                limits=limits,
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
+            )
+        return self._client
+
     def generate(
         self,
         query: str,
         context_items: list[ContextItem],
         language: str | None = None,
         temperature: float = 0.1,
-        max_tokens: int = 256,
+        max_tokens: int = 192,
     ) -> GenerationResult:
-        import httpx
-
         t0 = time.perf_counter()
         if not context_items or not query.strip():
             return GenerationResult(
@@ -302,11 +316,6 @@ class OpenAICompatibleProvider:
             f"ANSWER (citing source numbers like [1]):"
         )
 
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
-
         payload = {
             "model": self.model_name,
             "messages": [
@@ -319,10 +328,10 @@ class OpenAICompatibleProvider:
 
         ttft = None
         try:
-            with httpx.Client(timeout=self.timeout) as client:
-                res = client.post(f"{self.base_url}/chat/completions", json=payload, headers=headers)
-                res.raise_for_status()
-                data = res.json()
+            client = self._get_client()
+            res = client.post(f"{self.base_url}/chat/completions", json=payload)
+            res.raise_for_status()
+            data = res.json()
 
             t_end = time.perf_counter()
             total_latency = (t_end - t0) * 1000.0
@@ -367,6 +376,10 @@ class OpenAICompatibleProvider:
                 is_grounded=True,
                 is_abstention=True,
             )
+
+    def close(self) -> None:
+        if self._client and not getattr(self._client, "is_closed", True):
+            self._client.close()
 
 
 def get_llm_provider(config: dict | None = None) -> LLMProvider:
