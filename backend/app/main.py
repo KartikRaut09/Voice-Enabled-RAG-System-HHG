@@ -76,9 +76,15 @@ def create_app() -> FastAPI:
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
-    # Global pipeline instance (lazy/configurable)
+    # Global pipeline instance (lazy/configurable from default.yaml)
+    import yaml
     from backend.app.pipeline import RAGPipeline
-    pipeline = RAGPipeline(config={"pipeline": {"dense_top_k": 50, "lexical_top_k": 50, "rrf_k": 60, "context_top_k": 5}})
+    config_path = Path(__file__).resolve().parent.parent.parent / "configs" / "default.yaml"
+    cfg = {}
+    if config_path.exists():
+        with open(config_path, "r", encoding="utf-8") as f:
+            cfg = yaml.safe_load(f) or {}
+    pipeline = RAGPipeline(config=cfg)
     app.state.pipeline = pipeline
 
     # STT Provider instance (configurable from default.yaml)
@@ -189,7 +195,8 @@ def create_app() -> FastAPI:
             )
 
         # 2. Delegate to the Single Authoritative Text-RAG Pipeline
-        rag_res: QueryResponse = pipeline.orchestrate(
+        rag_pipe = getattr(app.state, "pipeline", None) or pipeline
+        rag_res: QueryResponse = rag_pipe.orchestrate(
             query=stt_res.text,
             language=stt_res.language,
             request_id=req_id,
