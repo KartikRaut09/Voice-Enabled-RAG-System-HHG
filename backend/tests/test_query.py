@@ -60,3 +60,26 @@ async def test_query_empty_string_rejected(client):
 async def test_query_missing_body_returns_422(client):
     response = await client.post("/api/query", json={})
     assert response.status_code == 422
+
+
+@pytest.mark.anyio
+async def test_query_with_mock_candidates_returns_grounded_answer(client):
+    mock_candidates = [
+        {
+            "parent_passage_id": "p100",
+            "chunk_id": "p100_c0",
+            "text": "ताजमहल आगरा में स्थित एक विश्व धरोहर स्थल है।",
+            "language": "hin_Deva",
+            "score": 0.95,
+        }
+    ]
+    response = await client.post(
+        "/api/query",
+        json={"query": "ताजमहल कहाँ है?", "language": "hin_Deva", "options": {"mock_candidates": mock_candidates}},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["sources"]) == 1
+    assert data["sources"][0]["metadata"]["parent_passage_id"] == "p100"
+    assert "ताजमहल" in data["answer"]
+
