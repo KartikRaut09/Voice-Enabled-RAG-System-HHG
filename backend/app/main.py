@@ -79,19 +79,18 @@ def create_app() -> FastAPI:
     # Global pipeline instance (lazy/configurable)
     from backend.app.pipeline import RAGPipeline
     pipeline = RAGPipeline(config={"pipeline": {"dense_top_k": 50, "lexical_top_k": 50, "rrf_k": 60, "context_top_k": 5}})
+    app.state.pipeline = pipeline
 
     # STT Provider instance (configurable from default.yaml)
     from backend.app.stt import get_stt_provider
-
-    stt_provider = get_stt_provider()
-
+    app.state.stt_provider = get_stt_provider()
 
     # Query endpoint — Thin route delegating directly to RAGPipeline (Phase 7)
     @app.post("/api/query", response_model=QueryResponse)
     async def query(request: QueryRequest) -> QueryResponse:
         """Process a query through the orchestrated RAG pipeline."""
         request_id = str(uuid.uuid4())
-        return pipeline.orchestrate(
+        return app.state.pipeline.orchestrate(
             query=request.query,
             language=request.language,
             request_id=request_id,
@@ -106,7 +105,8 @@ def create_app() -> FastAPI:
     ) -> TranscriptionResponse:
         """Transcribe uploaded audio file to text query with language preservation."""
         audio_bytes = await file.read()
-        res = stt_provider.transcribe(
+        provider = getattr(app.state, "stt_provider", None) or get_stt_provider()
+        res = provider.transcribe(
             audio_bytes=audio_bytes,
             filename=file.filename,
             language=language,
@@ -137,11 +137,13 @@ def create_app() -> FastAPI:
 
         # 1. Validate & Transcribe Audio
         t_start_e2e = time.perf_counter()
-        stt_res = stt_provider.transcribe(
+        provider = getattr(app.state, "stt_provider", None) or get_stt_provider()
+        stt_res = provider.transcribe(
             audio_bytes=audio_bytes,
             filename=file.filename,
             language=language,
         )
+
 
         # Early termination on STT failure or empty transcription
         if stt_res.status == "empty_transcription" or not stt_res.text.strip():

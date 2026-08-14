@@ -11,6 +11,10 @@ from backend.tests.test_stt import create_dummy_wav_bytes
 
 def test_voice_query_endpoint_success():
     """Test successful voice query execution through the integrated STT-RAG pipeline."""
+    from backend.app.stt import MockSTTProvider
+    mock_stt = MockSTTProvider(default_transcript="भारत की राजधानी क्या है?", default_language="hin_Deva")
+    app.state.stt_provider = mock_stt
+
     client = TestClient(app)
     wav_bytes = create_dummy_wav_bytes("भारत की राजधानी क्या है?")
 
@@ -39,9 +43,14 @@ def test_voice_query_endpoint_success():
 
 def test_voice_query_empty_audio_rejection():
     """Test rejection of empty audio bytes on /api/voice-query."""
+    from backend.app.stt import MockSTTProvider
+    mock_stt = MockSTTProvider()
+    app.state.stt_provider = mock_stt
+
     client = TestClient(app)
     files = {"file": ("empty.wav", io.BytesIO(b""), "audio/wav")}
     response = client.post("/api/voice-query", files=files)
+
 
     assert response.status_code == 200
     res_json = response.json()
@@ -52,6 +61,10 @@ def test_voice_query_empty_audio_rejection():
 
 def test_voice_query_multilingual_language_propagation():
     """Test language propagation through voice endpoint for Marathi, Bengali, Tamil, Telugu."""
+    from backend.app.stt import MockSTTProvider
+    mock_stt = MockSTTProvider()
+    app.state.stt_provider = mock_stt
+
     client = TestClient(app)
     languages = [
         ("mar_Deva", "महाराष्ट्राची राजधानी कोणती?"),
@@ -62,6 +75,7 @@ def test_voice_query_multilingual_language_propagation():
 
     for lang, query_text in languages:
         wav_bytes = create_dummy_wav_bytes(query_text)
+        mock_stt.register_transcript("query.wav", query_text, lang)
         files = {"file": ("query.wav", io.BytesIO(wav_bytes), "audio/wav")}
         data = {"language": lang}
         response = client.post("/api/voice-query", files=files, data=data)
@@ -74,6 +88,10 @@ def test_voice_query_multilingual_language_propagation():
 
 def test_voice_query_and_text_query_coexistence():
     """Test that text endpoint /api/query and voice endpoint /api/voice-query both work cleanly."""
+    from backend.app.stt import MockSTTProvider
+    mock_stt = MockSTTProvider(default_transcript="भारत की राजधानी क्या है?", default_language="hin_Deva")
+    app.state.stt_provider = mock_stt
+
     client = TestClient(app)
 
     # 1. Text query

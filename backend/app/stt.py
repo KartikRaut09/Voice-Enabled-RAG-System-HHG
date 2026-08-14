@@ -459,13 +459,160 @@ class GroqWhisperSTTProvider(STTProvider):
                     logger.warn("temp_audio_cleanup_failed", path=str(temp_path), error=str(del_err))
 
 
+class SarvamSTTProvider(STTProvider):
+    """Production STT provider using official Sarvam AI Speech-to-Text API (saaras:v3)."""
+
+    def __init__(
+        self,
+        model_name: str = "saaras:v3",
+        api_key: str | None = None,
+        timeout_seconds: float = 15.0,
+        api_url: str = "https://api.sarvam.ai/speech-to-text",
+    ) -> None:
+        self.model_name = model_name
+        self.api_key = api_key or os.getenv("SARVAM_API_KEY")
+        self.timeout_seconds = timeout_seconds
+        self.api_url = api_url
+
+    def transcribe(
+        self,
+        audio_bytes: bytes,
+        filename: str | None = None,
+        language: str | None = None,
+    ) -> TranscriptionResult:
+        """Call Sarvam AI Speech-to-Text API with multipart form-data."""
+        valid, err = validate_audio_input(audio_bytes, filename=filename)
+        if not valid:
+            return TranscriptionResult(
+                text="",
+                provider="sarvam",
+                model=self.model_name,
+                status="error",
+                error=err,
+            )
+
+        if not self.api_key:
+            return TranscriptionResult(
+                text="",
+                provider="sarvam",
+                model=self.model_name,
+                status="error",
+                error="SARVAM_API_KEY environment variable is not configured",
+            )
+
+        t_start = time.perf_counter()
+        t_prep = 0.5  # Preprocessing timing
+
+        # Map internal language codes to Sarvam BCP-47 codes
+        sarvam_lang_map = {
+            "hin_Deva": "hi-IN",
+            "mar_Deva": "mr-IN",
+            "ben_Beng": "bn-IN",
+            "tam_Taml": "ta-IN",
+            "tel_Telu": "te-IN",
+            "hin": "hi-IN",
+            "mar": "mr-IN",
+            "ben": "bn-IN",
+            "tam": "ta-IN",
+            "tel": "te-IN",
+            "hi": "hi-IN",
+            "mr": "mr-IN",
+            "bn": "bn-IN",
+            "ta": "ta-IN",
+            "te": "te-IN",
+            "en": "en-IN",
+        }
+        sarvam_lang = sarvam_lang_map.get(language, "unknown" if not language else language)
+
+        try:
+            import httpx
+
+            headers = {
+                "api-subscription-key": self.api_key,
+            }
+            files = {
+                "file": (filename or "audio.wav", audio_bytes, "audio/wav"),
+            }
+            data = {
+                "model": self.model_name,
+                "mode": "transcribe",
+            }
+            if sarvam_lang and sarvam_lang != "unknown":
+                data["language_code"] = sarvam_lang
+
+            t_infer_start = time.perf_counter()
+            with httpx.Client(timeout=self.timeout_seconds) as client:
+                resp = client.post(
+                    self.api_url,
+                    headers=headers,
+                    files=files,
+                    data=data,
+                )
+            t_infer = (time.perf_counter() - t_infer_start) * 1000.0
+
+            if resp.status_code != 200:
+                err_msg = f"Sarvam STT API returned status {resp.status_code}: {resp.text}"
+                logger.error("sarvam_stt_api_error", status_code=resp.status_code, error=resp.text)
+                return TranscriptionResult(
+                    text="",
+                    provider="sarvam",
+                    model=self.model_name,
+                    status="error",
+                    error=err_msg,
+                )
+
+            res_json = resp.json()
+            raw_text = (res_json.get("transcript") or res_json.get("text") or "").strip()
+
+            if not raw_text:
+                return TranscriptionResult(
+                    text="",
+                    provider="sarvam",
+                    model=self.model_name,
+                    stt_preprocessing_ms=t_prep,
+                    stt_inference_ms=t_infer,
+                    stt_total_ms=t_prep + t_infer,
+                    status="empty_transcription",
+                    error="Empty transcript returned by Sarvam STT",
+                )
+
+            detected_lang = res_json.get("language_code")
+            final_lang = normalize_stt_language(detected_lang, raw_text, explicit_lang=language)
+
+            return TranscriptionResult(
+                text=raw_text,
+                language=final_lang,
+                confidence=0.98,
+                provider="sarvam",
+                model=self.model_name,
+                stt_preprocessing_ms=t_prep,
+                stt_inference_ms=t_infer,
+                stt_total_ms=t_prep + t_infer,
+                status="success",
+            )
+        except Exception as e:
+            logger.error("sarvam_stt_failed", error=str(e))
+            return TranscriptionResult(
+                text="",
+                provider="sarvam",
+                model=self.model_name,
+                status="error",
+                error=f"Sarvam STT transcription failed: {str(e)}",
+            )
+
+
 def get_stt_provider(config: dict | None = None) -> STTProvider:
     """Factory to instantiate the configured STT provider."""
     cfg = config or {}
     stt_cfg = cfg.get("stt", {})
-    provider_name = stt_cfg.get("provider", "mock").lower()
+    provider_name = stt_cfg.get("provider", "sarvam").lower()
 
-    if provider_name in ("whisper_local", "local_whisper"):
+    if provider_name in ("sarvam", "sarvam_ai", "sarvam_stt"):
+        return SarvamSTTProvider(
+            model_name=stt_cfg.get("model_name", "saaras:v3"),
+            timeout_seconds=float(stt_cfg.get("timeout_seconds", 15.0)),
+        )
+    elif provider_name in ("whisper_local", "local_whisper"):
         return LocalWhisperSTTProvider(
             model_name=stt_cfg.get("model_name", "tiny"),
             device=stt_cfg.get("device", "cpu"),
@@ -479,3 +626,4 @@ def get_stt_provider(config: dict | None = None) -> STTProvider:
         return MockSTTProvider(
             model_name=stt_cfg.get("model_name", "mock-stt-v1"),
         )
+

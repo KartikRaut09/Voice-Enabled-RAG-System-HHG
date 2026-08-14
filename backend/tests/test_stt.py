@@ -109,13 +109,185 @@ def test_stt_multilingual_indic_language_preservation():
 
 
 def test_get_stt_provider_factory():
-    """Test STT provider factory instantiating mock provider."""
-    provider = get_stt_provider({"stt": {"provider": "mock", "model_name": "mock-stt-v1"}})
-    assert isinstance(provider, MockSTTProvider)
+    """Test STT provider factory instantiating mock and sarvam providers."""
+    mock_p = get_stt_provider({"stt": {"provider": "mock", "model_name": "mock-stt-v1"}})
+    assert isinstance(mock_p, MockSTTProvider)
+
+    sarvam_p = get_stt_provider({"stt": {"provider": "sarvam", "model_name": "saaras:v3"}})
+    from backend.app.stt import SarvamSTTProvider
+    assert isinstance(sarvam_p, SarvamSTTProvider)
+    assert sarvam_p.model_name == "saaras:v3"
+
+
+def test_sarvam_provider_missing_api_key(monkeypatch):
+    """Test Sarvam provider handles missing API key cleanly."""
+    monkeypatch.delenv("SARVAM_API_KEY", raising=False)
+    from backend.app.stt import SarvamSTTProvider
+    provider = SarvamSTTProvider(api_key=None)
+    wav_bytes = create_dummy_wav_bytes()
+
+    res = provider.transcribe(wav_bytes)
+    assert res.status == "error"
+    assert "SARVAM_API_KEY" in (res.error or "")
+
+
+def test_sarvam_provider_successful_transcription(monkeypatch):
+    """Test Sarvam provider parses valid JSON response from API."""
+    from backend.app.stt import SarvamSTTProvider
+
+    class MockResponse:
+        status_code = 200
+        text = '{"transcript": "भारत की राजधानी क्या है?", "language_code": "hi-IN"}'
+        def json(self):
+            return {"transcript": "भारत की राजधानी क्या है?", "language_code": "hi-IN"}
+
+    class MockClient:
+        def __init__(self, *args, **kwargs):
+            pass
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
+        def post(self, url, headers=None, files=None, data=None):
+            assert headers.get("api-subscription-key") == "dummy_sarvam_key"
+            assert data.get("model") == "saaras:v3"
+            assert data.get("language_code") == "hi-IN"
+            return MockResponse()
+
+    monkeypatch.setattr("httpx.Client", MockClient)
+    provider = SarvamSTTProvider(api_key="dummy_sarvam_key")
+    wav_bytes = create_dummy_wav_bytes()
+
+    res = provider.transcribe(wav_bytes, language="hin_Deva")
+    assert res.status == "success"
+    assert res.text == "भारत की राजधानी क्या है?"
+    assert res.language == "hin_Deva"
+    assert res.provider == "sarvam"
+    assert res.model == "saaras:v3"
+    assert res.stt_total_ms > 0
+
+
+def test_sarvam_provider_api_error_handling(monkeypatch):
+    """Test Sarvam provider handles non-200 HTTP response codes."""
+    from backend.app.stt import SarvamSTTProvider
+
+    class MockErrorResponse:
+        status_code = 401
+        text = '{"detail": "Invalid subscription key"}'
+        def json(self):
+            return {"detail": "Invalid subscription key"}
+
+    class MockErrorClient:
+        def __init__(self, *args, **kwargs):
+            pass
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
+        def post(self, *args, **kwargs):
+            return MockErrorResponse()
+
+    monkeypatch.setattr("httpx.Client", MockErrorClient)
+    provider = SarvamSTTProvider(api_key="bad_key")
+    wav_bytes = create_dummy_wav_bytes()
+
+    res = provider.transcribe(wav_bytes)
+    assert res.status == "error"
+    assert "401" in (res.error or "")
+
+
+def test_sarvam_provider_timeout_handling(monkeypatch):
+    """Test Sarvam provider handles network timeout exceptions."""
+    import httpx
+    from backend.app.stt import SarvamSTTProvider
+
+    class MockTimeoutClient:
+        def __init__(self, *args, **kwargs):
+            pass
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
+        def post(self, *args, **kwargs):
+            raise httpx.ReadTimeout("Connection timed out")
+
+    monkeypatch.setattr("httpx.Client", MockTimeoutClient)
+    provider = SarvamSTTProvider(api_key="dummy_key")
+    wav_bytes = create_dummy_wav_bytes()
+
+    res = provider.transcribe(wav_bytes)
+    assert res.status == "error"
+    assert "timed out" in (res.error or "").lower()
+
+
+def test_sarvam_provider_empty_transcription_handling(monkeypatch):
+    """Test Sarvam provider returns empty_transcription status when transcript is empty."""
+    from backend.app.stt import SarvamSTTProvider
+
+    class MockEmptyResponse:
+        status_code = 200
+        text = '{"transcript": ""}'
+        def json(self):
+            return {"transcript": ""}
+
+    class MockEmptyClient:
+        def __init__(self, *args, **kwargs):
+            pass
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
+        def post(self, *args, **kwargs):
+            return MockEmptyResponse()
+
+    monkeypatch.setattr("httpx.Client", MockEmptyClient)
+    provider = SarvamSTTProvider(api_key="dummy_key")
+    wav_bytes = create_dummy_wav_bytes()
+
+    res = provider.transcribe(wav_bytes)
+    assert res.status == "empty_transcription"
+    assert res.text == ""
+
+
+def test_sarvam_provider_language_mapping(monkeypatch):
+    """Test language mapping from internal Indic representations to Sarvam BCP-47 codes."""
+    from backend.app.stt import SarvamSTTProvider
+
+    captured_lang_codes = []
+
+    class MockLangCaptureClient:
+        def __init__(self, *args, **kwargs):
+            pass
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
+        def post(self, url, headers=None, files=None, data=None):
+            captured_lang_codes.append(data.get("language_code"))
+            class Resp:
+                status_code = 200
+                text = '{"transcript": "test"}'
+                def json(self):
+                    return {"transcript": "test"}
+            return Resp()
+
+    monkeypatch.setattr("httpx.Client", MockLangCaptureClient)
+    provider = SarvamSTTProvider(api_key="dummy_key")
+    wav_bytes = create_dummy_wav_bytes()
+
+    # Test all 5 benchmarked Indic languages
+    langs = [("hin_Deva", "hi-IN"), ("mar_Deva", "mr-IN"), ("ben_Beng", "bn-IN"), ("tam_Taml", "ta-IN"), ("tel_Telu", "te-IN")]
+    for int_lang, expected_sarvam in langs:
+        provider.transcribe(wav_bytes, language=int_lang)
+
+    assert captured_lang_codes == ["hi-IN", "mr-IN", "bn-IN", "ta-IN", "te-IN"]
 
 
 def test_api_transcribe_endpoint():
     """Test POST /api/transcribe endpoint with multipart audio upload."""
+    mock_stt = MockSTTProvider(default_transcript="भारत की राजधानी क्या है?", default_language="hin_Deva")
+    app.state.stt_provider = mock_stt
+
     client = TestClient(app)
     wav_bytes = create_dummy_wav_bytes()
 
@@ -134,6 +306,9 @@ def test_api_transcribe_endpoint():
 
 def test_api_transcribe_empty_audio_rejection():
     """Test POST /api/transcribe with empty file."""
+    mock_stt = MockSTTProvider()
+    app.state.stt_provider = mock_stt
+
     client = TestClient(app)
     files = {"file": ("empty.wav", io.BytesIO(b""), "audio/wav")}
     response = client.post("/api/transcribe", files=files)
@@ -142,6 +317,7 @@ def test_api_transcribe_empty_audio_rejection():
     res_json = response.json()
     assert res_json["status"] == "error"
     assert "empty" in res_json["error"].lower()
+
 
 
 def test_stt_to_rag_pipeline_compatibility():
@@ -179,3 +355,4 @@ def test_stt_to_rag_pipeline_compatibility():
     assert rag_resp.status == "success"
     assert len(rag_resp.sources) == 1
     assert "नई दिल्ली" in rag_resp.answer
+

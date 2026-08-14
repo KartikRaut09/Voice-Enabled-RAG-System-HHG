@@ -151,14 +151,15 @@ guardrails:
 
 stt:
   enabled: true
-  provider: "mock" # options: mock, whisper_local, groq_whisper
-  model_name: "openai/whisper-tiny"
+  provider: "sarvam" # options: sarvam, groq_whisper, whisper_local, mock
+  model_name: "saaras:v3"
   max_audio_size_mb: 10
   max_audio_duration_seconds: 60
   supported_sample_rate: 16000
   default_language: null
   timeout_seconds: 15.0
   device: "cpu"
+
 
 
 

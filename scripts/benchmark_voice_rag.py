@@ -72,12 +72,18 @@ def load_dataset_records(base_dir: Path) -> tuple[list[dict], list[dict]]:
 
 
 import argparse
-from backend.app.stt import GroqWhisperSTTProvider, MockSTTProvider, get_stt_provider
+from backend.app.stt import (
+    GroqWhisperSTTProvider,
+    LocalWhisperSTTProvider,
+    MockSTTProvider,
+    SarvamSTTProvider,
+    get_stt_provider,
+)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Full Voice-RAG End-to-End Benchmark")
-    parser.add_argument("--provider", type=str, default="mock", choices=["mock", "whisper_local", "groq_whisper"], help="STT Provider to benchmark")
+    parser.add_argument("--provider", type=str, default="sarvam", choices=["sarvam", "groq_whisper", "whisper_local", "mock"], help="STT Provider to benchmark")
     parser.add_argument("--limit", type=int, default=250, help="Number of evaluation queries to benchmark (default: 250)")
     parser.add_argument("--warmup", type=int, default=3, help="Number of warmup queries (not recorded in metrics)")
     args = parser.parse_args()
@@ -86,7 +92,13 @@ def main() -> None:
     config = load_config()
 
     print(f"STT Provider selected: {args.provider}")
-    if args.provider == "groq_whisper":
+    if args.provider == "sarvam":
+        import os
+        api_key = os.getenv("SARVAM_API_KEY")
+        if not api_key:
+            print("ERROR: Real STT validation not executed — SARVAM_API_KEY unavailable in environment.")
+            sys.exit(1)
+    elif args.provider == "groq_whisper":
         import os
         api_key = os.getenv("GROQ_API_KEY")
         if not api_key:
@@ -138,25 +150,28 @@ def main() -> None:
     bm25 = BM25Index(k1=1.5, b=0.75)
     bm25.build(chunk_texts, chunk_meta)
 
-    # 3. Instantiate Guardrail & Pipeline
+    # 3. Setup STT Provider & RAGPipeline
     print("\nInitializing Guardrail & RAGPipeline...")
     guardrail = Guardrail(config=config)
+    llm_provider = MockLLMProvider(model_name="llama-3.1-8b-instant")
+    context_builder = ContextBuilder(default_top_k=5)
     pipeline = RAGPipeline(
         embedder=embedder,
         vector_store=vstore,
         bm25_index=bm25,
-        context_builder=ContextBuilder(default_top_k=5),
-        llm_provider=MockLLMProvider(model_name="llama-3.1-8b-instant"),
+        context_builder=context_builder,
+        llm_provider=llm_provider,
         query_processor=QueryProcessor(),
         guardrail=guardrail,
         config=config,
     )
 
-    # 4. Instantiate STT Provider
-    if args.provider == "groq_whisper":
+    if args.provider == "sarvam":
+        stt_provider = SarvamSTTProvider()
+    elif args.provider == "groq_whisper":
         stt_provider = GroqWhisperSTTProvider(model_name="whisper-large-v3-turbo")
     elif args.provider == "whisper_local":
-        stt_provider = get_stt_provider("whisper_local", config)
+        stt_provider = LocalWhisperSTTProvider(config=config)
     else:
         stt_provider = MockSTTProvider(simulated_latency_ms=18.5)
 
