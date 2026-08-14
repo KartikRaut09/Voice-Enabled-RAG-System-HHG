@@ -135,7 +135,7 @@
 
                     mediaRecorder.onstop = async function () {
                         stream.getTracks().forEach(function (track) { track.stop(); });
-                        micStatusText.textContent = 'Transcribing speech...';
+                        micStatusText.textContent = 'Processing voice query...';
                         micBtn.className = 'mic-idle';
                         micBtn.textContent = '🎤';
 
@@ -144,26 +144,44 @@
                         formData.append('file', audioBlob, 'speech.webm');
 
                         try {
-                            const res = await fetch(API_BASE + '/api/transcribe', {
+                            const res = await fetch(API_BASE + '/api/voice-query', {
                                 method: 'POST',
                                 body: formData,
                             });
-                            if (!res.ok) throw new Error('Transcription request failed');
+                            if (!res.ok) throw new Error('Voice query request failed');
                             const data = await res.json();
                             if (data.status === 'empty_transcription') {
                                 showError('No speech detected in audio.');
-                            } else if (data.error) {
-                                showError(data.error);
-                            } else if (data.text) {
-                                queryInput.value = data.text;
-                                micStatusText.textContent = 'Transcribed (' + data.latency_ms.toFixed(1) + ' ms)';
+                            } else if (data.status === 'error' && !data.answer) {
+                                showError(data.error || 'Voice query processing error');
+                            } else {
+                                queryInput.value = data.transcription || '';
+                                responseSection.classList.remove('hidden');
+                                errorSection.classList.add('hidden');
+                                answerText.textContent = data.answer;
+
+                                if (data.sources && data.sources.length > 0) {
+                                    sourcesCard.classList.remove('hidden');
+                                    sourcesList.innerHTML = '';
+                                    for (const src of data.sources) {
+                                        const li = document.createElement('li');
+                                        li.textContent = src.passage_text + ' (score: ' + src.score.toFixed(3) + ')';
+                                        sourcesList.appendChild(li);
+                                    }
+                                } else {
+                                    sourcesCard.classList.add('hidden');
+                                }
+
+                                renderLatency(data.latency);
+                                micStatusText.textContent = 'Completed in ' + (data.latency.e2e_latency_ms || 0).toFixed(1) + ' ms';
                                 setTimeout(function () { micStatus.classList.add('hidden'); }, 3000);
                             }
                         } catch (err) {
-                            showError('Voice transcription failed: ' + err.message);
+                            showError('Voice query failed: ' + err.message);
                             micStatus.classList.add('hidden');
                         }
                     };
+
 
                     mediaRecorder.start();
                     isRecording = true;

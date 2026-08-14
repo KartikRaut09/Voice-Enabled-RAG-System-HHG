@@ -81,3 +81,20 @@ class TranscriptionResponse(BaseModel):
     error: str | None = None
 
 
+class VoiceQueryResponse(BaseModel):
+    """Structured response for POST /api/voice-query."""
+
+    request_id: str
+    transcription: str
+    language: str | None = None
+    answer: str
+    sources: list[SourcePassage] = Field(default_factory=list)
+    latency: LatencyBreakdown
+    status: str = "success"
+    error: str | None = None
+    query_metadata: dict = Field(default_factory=dict)
+    pipeline_metadata: dict = Field(default_factory=dict)
+    guardrail_flags: dict = Field(default_factory=dict)
+
+
+
