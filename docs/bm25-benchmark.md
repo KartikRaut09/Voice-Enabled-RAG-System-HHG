@@ -12,10 +12,10 @@ All retrieval metrics are computed at the **parent-passage level** with exact pa
 
 | Strategy | k1 | b | Chunks | Vocabulary | Build Time | Recall@1 (%) | Recall@5 (%) | Recall@10 (%) | MRR (%) | Latency (P50) |
 |---|---|---|---|---|---|---|---|---|---|---|
-| **Structure_aware** | 1.5 | 0.75 | 12,897 | 37,284 | 0.164s | **34.0%** | **58.4%** | **68.8%** | **44.15%** | **0.62 ms** |
+| **Structure_aware** | **1.5** | **0.75** | 12,897 | 37,284 | 0.165s | **34.0%** | **58.4%** | **68.8%** | **44.15%** | **0.62 ms** |
 | **Passage** | 1.5 | 0.75 | 9,998 | 33,142 | 0.130s | **33.2%** | **57.6%** | **67.6%** | **43.28%** | **0.58 ms** |
 | **Structure_aware** | 1.2 | 0.75 | 12,897 | 37,284 | 0.165s | **33.6%** | **58.0%** | **68.4%** | **43.88%** | **0.61 ms** |
-| **Structure_aware** | 1.5 | 0.5 | 12,897 | 37,284 | 0.161s | **33.6%** | **58.4%** | **68.8%** | **44.02%** | **0.62 ms** |
+| **Structure_aware** | 1.5 | 0.50 | 12,897 | 37,284 | 0.161s | **33.6%** | **58.4%** | **68.8%** | **44.02%** | **0.62 ms** |
 
 ---
 
@@ -63,7 +63,7 @@ To determine whether lexical retrieval provides distinct, non-redundant signal f
 
 | Metric | Latency |
 |---|---|
-| **Index Build Time (12,897 chunks)** | 0.164 seconds (~78,640 chunks/sec) |
+| **Index Build Time (12,897 chunks)** | 0.165 seconds (~78,163 chunks/sec) |
 | **Query Tokenization (P50)** | <0.05 ms |
 | **BM25 Search (P50)** | 0.62 ms |
 | **BM25 Search (P70)** | 0.81 ms |
