@@ -286,7 +286,11 @@ class RAGPipeline:
                 "provider": gen_res.provider,
                 "input_tokens": gen_res.input_tokens,
                 "output_tokens": gen_res.output_tokens,
+                "retrieved_parent_ids": [
+                    c.get("parent_passage_id") for c in retrieved_cands[:10] if c.get("parent_passage_id")
+                ],
             },
+
         )
 
     def _build_latency(self, timings: dict[str, float]) -> LatencyBreakdown:

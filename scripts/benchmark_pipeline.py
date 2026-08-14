@@ -166,7 +166,9 @@ def main() -> None:
         context_latencies.append(resp.latency.reranking_ms)
         gen_latencies.append(resp.latency.generation_ms)
 
-        retrieved_pids = [s.metadata.get("parent_passage_id") for s in resp.sources]
+        retrieved_pids = resp.pipeline_metadata.get("retrieved_parent_ids") or [
+            s.metadata.get("parent_passage_id") for s in resp.sources
+        ]
 
         # Retrieval metrics
         r1 = 1.0 if any(pid in gold_parent_ids for pid in retrieved_pids[:1]) else 0.0
