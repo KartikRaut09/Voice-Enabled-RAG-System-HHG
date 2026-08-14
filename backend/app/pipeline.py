@@ -13,8 +13,9 @@ import uuid
 
 from backend.app.config import get_logger
 from backend.app.context import ContextBuilder
-from backend.app.fusion import reciprocal_rank_fusion
+from backend.app.fusion import aggregate_parent_passages, reciprocal_rank_fusion
 from backend.app.generation import LLMProvider, get_llm_provider
+
 from backend.app.middleware import LatencyTracker
 from backend.app.query_processor import QueryInput, QueryProcessor
 from backend.app.reranking import CrossEncoderReranker, rerank_candidates
@@ -287,9 +288,12 @@ class RAGPipeline:
                 "input_tokens": gen_res.input_tokens,
                 "output_tokens": gen_res.output_tokens,
                 "retrieved_parent_ids": [
-                    c.get("parent_passage_id") for c in retrieved_cands[:10] if c.get("parent_passage_id")
+                    c.get("parent_passage_id")
+                    for c in aggregate_parent_passages(retrieved_cands, top_k=10, aggregation_method="max")
+                    if c.get("parent_passage_id")
                 ],
             },
+
 
         )
 
