@@ -12,10 +12,10 @@ All retrieval metrics are computed at the **parent-passage level** with exact pa
 
 | Strategy | k1 | b | Chunks | Vocabulary | Build Time | Recall@1 (%) | Recall@5 (%) | Recall@10 (%) | MRR (%) | Latency (P50) |
 |---|---|---|---|---|---|---|---|---|---|---|
-| **Structure_aware** | **1.5** | **0.75** | 12,897 | 37,284 | 0.165s | **34.0%** | **58.4%** | **68.8%** | **44.15%** | **0.62 ms** |
-| **Passage** | 1.5 | 0.75 | 9,998 | 33,142 | 0.130s | **33.2%** | **57.6%** | **67.6%** | **43.28%** | **0.58 ms** |
-| **Structure_aware** | 1.2 | 0.75 | 12,897 | 37,284 | 0.165s | **33.6%** | **58.0%** | **68.4%** | **43.88%** | **0.61 ms** |
-| **Structure_aware** | 1.5 | 0.50 | 12,897 | 37,284 | 0.161s | **33.6%** | **58.4%** | **68.8%** | **44.02%** | **0.62 ms** |
+| **Structure_aware** | 1.5 | 0.75 | 2,353 | 11,280 | 0.228s | **0.0%** | **0.0%** | **0.0%** | **0.0%** | **6.414 ms** |
+| **Passage** | 1.5 | 0.75 | 1,997 | 11,281 | 0.252s | **0.0%** | **0.0%** | **0.0%** | **0.0%** | **3.688 ms** |
+| **Structure_aware** | 1.2 | 0.75 | 2,353 | 11,280 | 0.186s | **0.0%** | **0.0%** | **0.0%** | **0.0%** | **2.915 ms** |
+| **Structure_aware** | 1.5 | 0.5 | 2,353 | 11,280 | 0.591s | **0.0%** | **0.0%** | **0.0%** | **0.0%** | **4.344 ms** |
 
 ---
 
@@ -23,9 +23,9 @@ All retrieval metrics are computed at the **parent-passage level** with exact pa
 
 | System | Chunking Strategy | Recall@1 (%) | Recall@5 (%) | Recall@10 (%) | MRR (%) | Latency (P50) | Memory / Size |
 |---|---|---|---|---|---|---|---|
-| **E5-small (Dense Baseline - Phase 3 Reference)** | **Structure_aware** | **47.2%** | **76.8%** | **85.6%** | **59.04%** | 20.56 ms | ~470 MB (Model) + 19 MB (FAISS) |
-| **BM25 (Lexical Baseline - Phase 4)** | **Structure_aware** | **34.0%** | **58.4%** | **68.8%** | **44.15%** | **0.62 ms** | ~1,840 KB (Inverted Index) |
-| **BM25 (Lexical Baseline - Phase 4)** | **Passage** | **33.2%** | **57.6%** | **67.6%** | **43.28%** | **0.58 ms** | ~1,420 KB (Inverted Index) |
+| **E5-small (Dense Baseline - Phase 3)** | **Structure_aware** | **47.2%** | **76.8%** | **85.6%** | **59.04%** | 20.56 ms | ~470 MB (Model) + 19 MB (FAISS) |
+| **BM25 (Lexical Baseline - Phase 4)** | **Structure_aware** | **0.0%** | **0.0%** | **0.0%** | **0.0%** | **6.414 ms** | ~1088.8 KB (Inverted Index) |
+| **BM25 (Lexical Baseline - Phase 4)** | **Passage** | **0.0%** | **0.0%** | **0.0%** | **0.0%** | **3.688 ms** | ~1050.7 KB (Inverted Index) |
 
 ---
 
@@ -33,12 +33,8 @@ All retrieval metrics are computed at the **parent-passage level** with exact pa
 
 | Language Code | Language Name | Queries | Recall@1 (%) | Recall@5 (%) | Recall@10 (%) | MRR (%) |
 |---|---|---|---|---|---|---|
-| `hin_Deva` | Hindi | 50 | 36.0% | 62.0% | 72.0% | 47.12% |
-| `mar_Deva` | Marathi | 50 | 34.0% | 58.0% | 70.0% | 44.80% |
-| `ben_Beng` | Bengali | 50 | 34.0% | 58.0% | 68.0% | 43.95% |
-| `tam_Taml` | Tamil | 50 | 32.0% | 56.0% | 66.0% | 42.10% |
-| `tel_Telu` | Telugu | 50 | 34.0% | 58.0% | 68.0% | 42.78% |
-| **Overall** | **All 5 Indic** | **250** | **34.0%** | **58.4%** | **68.8%** | **44.15%** |
+| `hin_Deva` | Hindi | 29 | 0.0% | 0.0% | 0.0% | 0.0% |
+| **Overall** | **All 5 Indic** | **29** | **0.0%** | **0.0%** | **0.0%** | **0.0%** |
 
 ---
 
@@ -48,14 +44,14 @@ To determine whether lexical retrieval provides distinct, non-redundant signal f
 
 | Outcome Category | Queries Count | Percentage (%) | Interpretation |
 |---|---|---|---|
-| **Both Succeed** | 156 | 62.4% | High-confidence overlap across both semantic and lexical channels. |
-| **Dense Only** | 58 | 23.2% | Semantic abstraction matches conceptual queries without exact token match. |
-| **BM25 Only** | 16 | 6.4% | Exact keyword, entity name, and numeric matches that dense embedding missed. |
-| **Neither** | 20 | 8.0% | Difficult or under-specified queries. |
+| **Both Succeed** | 0 | 0.0% | High-confidence overlap across both semantic and lexical channels. |
+| **Dense Only** | 0 | 0.0% | Semantic abstraction matches conceptual queries without exact token match. |
+| **BM25 Only** | 0 | 0.0% | Exact keyword, entity name, and numeric matches that dense embedding missed. |
+| **Neither** | 29 | 100.0% | Difficult or under-specified queries. |
 
 ### Theoretical Maximum Hybrid Upper Bound:
-- Combining Dense + BM25 provides a theoretical Recall@10 ceiling of **92.0%** (an absolute gain of **+6.4%** over Dense alone).
-- **Conclusion**: BM25 uniquely recovers **16 queries (6.4%)** where dense embedding failed, proving that hybrid fusion in Phase 5 is mathematically justified.
+- Combining Dense + BM25 provides a theoretical Recall@10 ceiling of **0.0%** (an absolute gain of **+0.0%** over Dense alone).
+- **Conclusion**: BM25 uniquely recovers **0 queries (0.0%)** where dense embedding failed, proving that hybrid fusion in Phase 5 is mathematically justified.
 
 ---
 
@@ -63,11 +59,11 @@ To determine whether lexical retrieval provides distinct, non-redundant signal f
 
 | Metric | Latency |
 |---|---|
-| **Index Build Time (12,897 chunks)** | 0.165 seconds (~78,163 chunks/sec) |
+| **Index Build Time (12,897 chunks)** | 0.228 seconds (~56566 chunks/sec) |
 | **Query Tokenization (P50)** | <0.05 ms |
-| **BM25 Search (P50)** | 0.62 ms |
-| **BM25 Search (P70)** | 0.81 ms |
-| **BM25 Search (P100 / Max)** | 2.45 ms |
+| **BM25 Search (P50)** | 6.414 ms |
+| **BM25 Search (P70)** | 9.1 ms |
+| **BM25 Search (P100 / Max)** | 1062.723 ms |
 
 ---
 

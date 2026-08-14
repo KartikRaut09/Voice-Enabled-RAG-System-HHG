@@ -22,11 +22,11 @@ Key capabilities benchmarked:
 
 ---
 
-## 3. Context Depth Ablation ($K \in \{3, 5, 8\}$)
+## 3. Context Depth Ablation (K in {3, 5, 8})
 
 Evaluated over Hybrid RRF (k=60) with default Grounded generator:
 
-| Context Depth ($K$) | Groundedness (%) | Answer Correctness (%) | Avg Input Tokens | Context Build P50 | Generation P50 | RAG Total P50 |
+| Context Depth (K) | Groundedness (%) | Answer Correctness (%) | Avg Input Tokens | Context Build P50 | Generation P50 | RAG Total P50 |
 |---|---|---|---|---|---|---|
 | **Top-3 Passages** | 94.8% | 84.4% | ~210 tokens | 0.28 ms | 72.40 ms | **94.00 ms** |
 | **Top-5 Passages (Default)** | **96.4%** | **88.8%** | **~340 tokens** | **0.35 ms** | **84.50 ms** | **106.10 ms** |
@@ -34,9 +34,9 @@ Evaluated over Hybrid RRF (k=60) with default Grounded generator:
 
 > [!TIP]
 > **Context Sizing Insight**:
-> - Expanding from $K=3$ to $K=5$ yields **+4.4% Answer Correctness** for only +12 ms generation latency.
-> - Expanding further from $K=5$ to $K=8$ provides diminishing accuracy gains (+0.4%) while inflating token volume (+55%) and generation latency (+30 ms).
-> - **$K_{\text{context}}=5$** is the optimal sweet spot for grounded Indic synthesis.
+> - Expanding from K=3 to K=5 yields **+4.4% Answer Correctness** for only +12 ms generation latency.
+> - Expanding further from K=5 to K=8 provides diminishing accuracy gains (+0.4%) while inflating token volume (+55%) and generation latency (+30 ms).
+> - **K=5** is the optimal sweet spot for grounded Indic synthesis.
 
 ---
 
@@ -53,7 +53,7 @@ Comparing generation over **Hybrid RRF (k=60)** vs **Hybrid RRF + Neural Reranke
 > **RAG Architecture Decision**:
 > - Without reranking, total RAG latency is **106.10 ms P50**, leaving ~94 ms headroom for subsequent STT processing to maintain sub-200ms voice responsiveness.
 > - With neural reranking, correctness improves to **90.4% (+1.6%)**, but total RAG latency reaches **193.25 ms P50**.
-> - **Production Selection**: Default to **Hybrid RRF ($k=60$) without reranking** for low-latency voice mode; expose toggleable neural reranking for high-precision text workflows.
+> - **Production Selection**: Default to **Hybrid RRF (k=60) without reranking** for low-latency voice mode; expose toggleable neural reranking for high-precision text workflows.
 
 ---
 
@@ -61,12 +61,11 @@ Comparing generation over **Hybrid RRF (k=60)** vs **Hybrid RRF + Neural Reranke
 
 | Language Code | Language Name | Queries | Groundedness (%) | Answer Correctness (%) | Citation Validity (%) | RAG Total P50 (ms) |
 |---|---|---|---|---|---|---|
-| `hin_Deva` | Hindi | 50 | **96.0%** | **90.0%** | **98.0%** | **104.20 ms** |
-| `mar_Deva` | Marathi | 50 | **96.0%** | **88.0%** | **98.0%** | **105.80 ms** |
-| `ben_Beng` | Bengali | 50 | **96.0%** | **88.0%** | **98.0%** | **106.10 ms** |
-| `tam_Taml` | Tamil | 50 | **98.0%** | **88.0%** | **100.0%** | **107.40 ms** |
-| `tel_Telu` | Telugu | 50 | **96.0%** | **90.0%** | **98.0%** | **106.90 ms** |
-| **Overall** | **All 5 Indic** | **250** | **96.4%** | **88.8%** | **98.4%** | **106.10 ms** |
+| `hin_Deva` | Hindi | 50 | **96.0%** | **90.0%** | **98.0%** | **104.2 ms** |
+| `mar_Deva` | Marathi | 50 | **96.0%** | **88.0%** | **98.0%** | **105.8 ms** |
+| `ben_Beng` | Bengali | 50 | **96.0%** | **88.0%** | **98.0%** | **106.1 ms** |
+| `tam_Taml` | Tamil | 50 | **98.0%** | **88.0%** | **100.0%** | **107.4 ms** |
+| `tel_Telu` | Telugu | 50 | **96.0%** | **90.0%** | **98.0%** | **106.9 ms** |
 
 ---
 
