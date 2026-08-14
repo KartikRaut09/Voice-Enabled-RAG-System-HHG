@@ -1,9 +1,45 @@
-"""Structured logging configuration using structlog."""
+"""Application configuration and structured logging."""
 
+from __future__ import annotations
+
+from functools import lru_cache
 import logging
 import sys
 
+from pydantic_settings import BaseSettings, SettingsConfigDict
 import structlog
+
+
+class Settings(BaseSettings):
+    """Application settings loaded from environment variables."""
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    APP_NAME: str = "HHGoa-RAG"
+    APP_VERSION: str = "0.1.0"
+    DEBUG: bool = False
+    HOST: str = "0.0.0.0"
+    PORT: int = 8000
+    LOG_LEVEL: str = "INFO"
+
+    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8000"]
+
+    # Secrets / API Keys (loaded via env, never committed)
+    SARVAM_API_KEY: str = ""
+    LLM_API_KEY: str = ""
+    LLM_PROVIDER: str = ""
+    EMBEDDING_MODEL: str = ""
+    VECTOR_DB_PATH: str = "data/indexes"
+
+
+@lru_cache
+def get_settings() -> Settings:
+    """Get cached application settings."""
+    return Settings()
 
 
 def setup_logging(log_level: str = "INFO") -> None:
@@ -31,7 +67,7 @@ def setup_logging(log_level: str = "INFO") -> None:
         processors=[
             structlog.stdlib.ProcessorFormatter.remove_processors_meta,
             structlog.dev.ConsoleRenderer()
-            if log_level == "DEBUG"
+            if log_level.upper() == "DEBUG"
             else structlog.processors.JSONRenderer(),
         ],
     )
@@ -43,8 +79,6 @@ def setup_logging(log_level: str = "INFO") -> None:
     root_logger.handlers.clear()
     root_logger.addHandler(handler)
     root_logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))
-
-    # Suppress noisy loggers
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
 

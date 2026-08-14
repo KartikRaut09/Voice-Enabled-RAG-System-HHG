@@ -1,4 +1,4 @@
-"""Latency instrumentation middleware and utilities."""
+"""Latency instrumentation middleware and pipeline latency tracker."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from starlette.requests import Request
 from starlette.responses import Response
 
-from backend.app.core.logging_config import get_logger
+from backend.app.config import get_logger
 
 logger = get_logger(__name__)
 
@@ -88,7 +88,6 @@ class LatencyInstrumentationMiddleware(BaseHTTPMiddleware):
         request_id = str(uuid.uuid4())
         start_time = time.perf_counter()
 
-        # Attach request_id to request state
         request.state.request_id = request_id
 
         response = await call_next(request)

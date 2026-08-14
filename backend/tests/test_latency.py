@@ -1,6 +1,6 @@
 import time
 
-from backend.app.core.middleware import LatencyTracker
+from backend.app.middleware import LatencyTracker
 
 
 def test_latency_tracker_start_stop():

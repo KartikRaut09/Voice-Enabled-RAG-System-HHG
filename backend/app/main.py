@@ -1,22 +1,24 @@
 """FastAPI application entry point."""
 
+from __future__ import annotations
+
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from pathlib import Path
+import uuid
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from backend.app.api.health import router as health_router
-from backend.app.api.routes import router as api_router
-from backend.app.core.config import get_settings
-from backend.app.core.logging_config import get_logger, setup_logging
-from backend.app.core.middleware import LatencyInstrumentationMiddleware
+from backend.app.config import get_logger, get_settings, setup_logging
+from backend.app.middleware import LatencyInstrumentationMiddleware, LatencyTracker
+from backend.app.schemas import LatencyBreakdown, QueryRequest, QueryResponse
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application startup and shutdown events."""
+    """Application startup and shutdown lifecycle."""
     settings = get_settings()
     setup_logging(settings.LOG_LEVEL)
     logger = get_logger(__name__)
@@ -27,13 +29,13 @@ async def lifespan(app: FastAPI):
         debug=settings.DEBUG,
     )
     yield
-    logger = get_logger(__name__)
     logger.info("application_shutting_down")
 
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     settings = get_settings()
+    logger = get_logger(__name__)
 
     app = FastAPI(
         title=settings.APP_NAME,
@@ -52,11 +54,62 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Routers
-    app.include_router(health_router)
-    app.include_router(api_router)
+    # Health endpoint
+    @app.get("/health")
+    async def health_check() -> dict:
+        """Return application health status."""
+        return {
+            "status": "healthy",
+            "app_name": settings.APP_NAME,
+            "version": settings.APP_VERSION,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
 
-    # Serve frontend static files (mount last, after API routes)
+    # Query endpoint (Phase 0 structured placeholder)
+    @app.post("/api/query", response_model=QueryResponse)
+    async def query(request: QueryRequest) -> QueryResponse:
+        """Process a query through the RAG pipeline."""
+        request_id = str(uuid.uuid4())
+        tracker = LatencyTracker()
+
+        # Phase 0 placeholder timing
+        tracker.start("query_processing")
+        tracker.stop("query_processing")
+
+        timings = tracker.to_dict()
+
+        latency = LatencyBreakdown(
+            stt_ms=timings.get("stt", 0.0),
+            query_processing_ms=timings.get("query_processing", 0.0),
+            embedding_ms=timings.get("embedding", 0.0),
+            retrieval_ms=timings.get("retrieval", 0.0),
+            reranking_ms=timings.get("reranking", 0.0),
+            generation_ms=timings.get("generation", 0.0),
+            guardrails_ms=timings.get("guardrails", 0.0),
+            stt_latency_ms=timings.get("stt_latency", 0.0),
+            rag_latency_ms=timings.get("rag_latency", 0.0),
+            e2e_latency_ms=timings.get("e2e_latency", 0.0),
+            total_request_ms=timings.get("query_processing", 0.0),
+        )
+
+        logger.info(
+            "query_processed",
+            request_id=request_id,
+            query=request.query,
+            language=request.language,
+            latency_ms=latency.rag_latency_ms,
+        )
+
+        return QueryResponse(
+            request_id=request_id,
+            query=request.query,
+            answer="Phase 0 placeholder — RAG pipeline not yet implemented.",
+            sources=[],
+            latency=latency,
+            status="success",
+        )
+
+    # Serve frontend static files
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"
     if frontend_dir.exists():
         app.mount(
