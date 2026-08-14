@@ -445,10 +445,10 @@ def main() -> None:
         {"name": "Hybrid RRF (k=20)", "params": "k=20, cand_k=50", "type": "rrf", "rrf_k": 20, "weight": 0.0, "cand_k": 50, "rerank": False, "rerank_k": 0},
         {"name": "Hybrid RRF (k=60)", "params": "k=60, cand_k=50", "type": "rrf", "rrf_k": 60, "weight": 0.0, "cand_k": 50, "rerank": False, "rerank_k": 0},
         {"name": "Hybrid RRF (k=100)", "params": "k=100, cand_k=50", "type": "rrf", "rrf_k": 100, "weight": 0.0, "cand_k": 50, "rerank": False, "rerank_k": 0},
-        {"name": "Hybrid Weighted (α=0.5)", "params": "dense=0.5, bm25=0.5", "type": "weighted", "rrf_k": 60, "weight": 0.5, "cand_k": 50, "rerank": False, "rerank_k": 0},
-        {"name": "Hybrid Weighted (α=0.7)", "params": "dense=0.7, bm25=0.3", "type": "weighted", "rrf_k": 60, "weight": 0.7, "cand_k": 50, "rerank": False, "rerank_k": 0},
-        {"name": "Hybrid Weighted (α=0.8)", "params": "dense=0.8, bm25=0.2", "type": "weighted", "rrf_k": 60, "weight": 0.8, "cand_k": 50, "rerank": False, "rerank_k": 0},
-        {"name": "Hybrid Weighted (α=0.9)", "params": "dense=0.9, bm25=0.1", "type": "weighted", "rrf_k": 60, "weight": 0.9, "cand_k": 50, "rerank": False, "rerank_k": 0},
+        {"name": "Hybrid Weighted (alpha=0.5)", "params": "dense=0.5, bm25=0.5", "type": "weighted", "rrf_k": 60, "weight": 0.5, "cand_k": 50, "rerank": False, "rerank_k": 0},
+        {"name": "Hybrid Weighted (alpha=0.7)", "params": "dense=0.7, bm25=0.3", "type": "weighted", "rrf_k": 60, "weight": 0.7, "cand_k": 50, "rerank": False, "rerank_k": 0},
+        {"name": "Hybrid Weighted (alpha=0.8)", "params": "dense=0.8, bm25=0.2", "type": "weighted", "rrf_k": 60, "weight": 0.8, "cand_k": 50, "rerank": False, "rerank_k": 0},
+        {"name": "Hybrid Weighted (alpha=0.9)", "params": "dense=0.9, bm25=0.1", "type": "weighted", "rrf_k": 60, "weight": 0.9, "cand_k": 50, "rerank": False, "rerank_k": 0},
     ]
 
     eval_matrix_results = []
