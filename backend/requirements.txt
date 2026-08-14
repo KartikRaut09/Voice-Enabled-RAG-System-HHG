@@ -12,3 +12,8 @@ structlog>=23.2.0
 aiofiles>=23.2.0
 datasets>=2.16.0
 pyarrow>=14.0.0
+torch>=2.0.0
+transformers>=4.36.0
+sentence-transformers>=2.3.0
+faiss-cpu>=1.7.4
+

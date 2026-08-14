@@ -82,5 +82,21 @@ chunking:
   structure_aware:
     max_words: 80
 
+embedding:
+  selected_model: "intfloat/multilingual-e5-small"
+  fallback_model: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+  dimension: 384
+  device: "cpu"
+  normalize: true
+  batch_size: 64
+
+vector_store:
+  type: "faiss"
+  metric: "cosine"
+  index_dir: "data/indexes/multilingual_e5_small_structure_aware"
+  top_k: 10
+  fetch_k: 50
+
+
 
 
