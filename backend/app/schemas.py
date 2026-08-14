@@ -64,3 +64,20 @@ class QueryResponse(BaseModel):
     pipeline_metadata: dict = Field(default_factory=dict)
     guardrail_flags: dict = Field(default_factory=dict)
 
+
+class TranscriptionResponse(BaseModel):
+    """Structured response for POST /api/transcribe."""
+
+    text: str
+    language: str | None = None
+    provider: str
+    model: str
+    confidence: float | None = None
+    stt_preprocessing_ms: float = 0.0
+    stt_inference_ms: float = 0.0
+    stt_total_ms: float = 0.0
+    latency_ms: float = 0.0
+    status: str = "success"
+    error: str | None = None
+
+

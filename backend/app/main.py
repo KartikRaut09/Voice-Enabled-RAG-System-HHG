@@ -7,13 +7,20 @@ from datetime import datetime, timezone
 from pathlib import Path
 import uuid
 
-from fastapi import FastAPI
+from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from backend.app.config import get_logger, get_settings, setup_logging
 from backend.app.middleware import LatencyInstrumentationMiddleware, LatencyTracker
-from backend.app.schemas import LatencyBreakdown, QueryRequest, QueryResponse, SourcePassage
+from backend.app.schemas import (
+    LatencyBreakdown,
+    QueryRequest,
+    QueryResponse,
+    SourcePassage,
+    TranscriptionResponse,
+)
+
 
 
 
@@ -70,6 +77,12 @@ def create_app() -> FastAPI:
     from backend.app.pipeline import RAGPipeline
     pipeline = RAGPipeline(config={"pipeline": {"dense_top_k": 50, "lexical_top_k": 50, "rrf_k": 60, "context_top_k": 5}})
 
+    # STT Provider instance (configurable from default.yaml)
+    from backend.app.stt import get_stt_provider
+
+    stt_provider = get_stt_provider()
+
+
     # Query endpoint — Thin route delegating directly to RAGPipeline (Phase 7)
     @app.post("/api/query", response_model=QueryResponse)
     async def query(request: QueryRequest) -> QueryResponse:
@@ -81,6 +94,34 @@ def create_app() -> FastAPI:
             request_id=request_id,
             options=request.options,
         )
+
+    # STT Transcribe endpoint (Phase 9)
+    @app.post("/api/transcribe", response_model=TranscriptionResponse)
+    async def transcribe_audio(
+        file: UploadFile = File(...),
+        language: str | None = Form(None),
+    ) -> TranscriptionResponse:
+        """Transcribe uploaded audio file to text query with language preservation."""
+        audio_bytes = await file.read()
+        res = stt_provider.transcribe(
+            audio_bytes=audio_bytes,
+            filename=file.filename,
+            language=language,
+        )
+        return TranscriptionResponse(
+            text=res.text,
+            language=res.language,
+            provider=res.provider,
+            model=res.model,
+            confidence=res.confidence,
+            stt_preprocessing_ms=res.stt_preprocessing_ms,
+            stt_inference_ms=res.stt_inference_ms,
+            stt_total_ms=res.stt_total_ms,
+            latency_ms=res.stt_total_ms,
+            status=res.status,
+            error=res.error,
+        )
+
 
 
 

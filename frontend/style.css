@@ -93,6 +93,30 @@ td { font-size: 0.9rem; }
 
 .hidden { display: none; }
 
+#mic-btn {
+    padding: 0.75rem 1rem;
+    font-size: 1.1rem;
+    background: #2a2a4a;
+}
+#mic-btn:hover { background: #3a3a5a; }
+#mic-btn.mic-recording {
+    background: #e53935;
+    animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+#mic-status {
+    max-width: 600px;
+    margin: 0.5rem auto 0;
+    text-align: center;
+    font-size: 0.85rem;
+    color: #ffb74d;
+}
+
 .error {
     color: #f44336;
     text-align: center;
@@ -100,3 +124,4 @@ td { font-size: 0.9rem; }
 }
 
 #response-section { margin-top: 1.5rem; }
+

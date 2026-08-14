@@ -22,12 +22,17 @@
                 <input
                     type="text"
                     id="query-input"
-                    placeholder="Ask a question..."
+                    placeholder="Ask a question in Hindi, Marathi, Bengali, Tamil, Telugu..."
                     autocomplete="off"
                     required
                 />
+                <button type="button" id="mic-btn" title="Voice Input" class="mic-idle">🎤</button>
                 <button type="submit" id="submit-btn">Search</button>
             </div>
+            <div id="mic-status" class="hidden">
+                <span id="mic-status-text">Recording... Click to stop</span>
+            </div>
+
         </form>
 
         <section id="response-section" class="hidden">

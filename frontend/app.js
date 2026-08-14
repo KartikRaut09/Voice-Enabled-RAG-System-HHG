@@ -113,6 +113,76 @@
         }
     }
 
+    // Voice Input Handling (Phase 9)
+    const micBtn = document.getElementById('mic-btn');
+    const micStatus = document.getElementById('mic-status');
+    const micStatusText = document.getElementById('mic-status-text');
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let isRecording = false;
+
+    if (micBtn) {
+        micBtn.addEventListener('click', async function () {
+            if (!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+
+                    mediaRecorder.ondataavailable = function (e) {
+                        if (e.data.size > 0) audioChunks.push(e.data);
+                    };
+
+                    mediaRecorder.onstop = async function () {
+                        stream.getTracks().forEach(function (track) { track.stop(); });
+                        micStatusText.textContent = 'Transcribing speech...';
+                        micBtn.className = 'mic-idle';
+                        micBtn.textContent = '🎤';
+
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const formData = new FormData();
+                        formData.append('file', audioBlob, 'speech.webm');
+
+                        try {
+                            const res = await fetch(API_BASE + '/api/transcribe', {
+                                method: 'POST',
+                                body: formData,
+                            });
+                            if (!res.ok) throw new Error('Transcription request failed');
+                            const data = await res.json();
+                            if (data.status === 'empty_transcription') {
+                                showError('No speech detected in audio.');
+                            } else if (data.error) {
+                                showError(data.error);
+                            } else if (data.text) {
+                                queryInput.value = data.text;
+                                micStatusText.textContent = 'Transcribed (' + data.latency_ms.toFixed(1) + ' ms)';
+                                setTimeout(function () { micStatus.classList.add('hidden'); }, 3000);
+                            }
+                        } catch (err) {
+                            showError('Voice transcription failed: ' + err.message);
+                            micStatus.classList.add('hidden');
+                        }
+                    };
+
+                    mediaRecorder.start();
+                    isRecording = true;
+                    micBtn.className = 'mic-recording';
+                    micBtn.textContent = '⏹️';
+                    micStatus.classList.remove('hidden');
+                    micStatusText.textContent = 'Recording speech... Click ⏹️ to finish';
+                } catch (err) {
+                    showError('Microphone access denied or unavailable: ' + err.message);
+                }
+            } else {
+                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                    mediaRecorder.stop();
+                }
+                isRecording = false;
+            }
+        });
+    }
+
     queryForm.addEventListener('submit', function (e) {
         e.preventDefault();
         var q = queryInput.value.trim();
@@ -121,3 +191,4 @@
 
     checkHealth();
 })();
+
