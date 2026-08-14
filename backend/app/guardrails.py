@@ -21,13 +21,17 @@ logger = get_logger(__name__)
 
 # Common prompt injection and adversarial patterns
 QUERY_INJECTION_PATTERNS = [
-    re.compile(r"ignore\s+(all\s+)?(previous|prior)\s+instructions?", re.IGNORECASE),
+    re.compile(
+        r"(ignore|disregard)\s+(all\s+)?(the\s+)?(previous|prior|retrieved|given|context)\s+(instructions?|sources?|passages?|documents?)",
+        re.IGNORECASE,
+    ),
     re.compile(r"reveal\s+(your\s+)?(system\s+prompt|api\s+key|credentials?|secrets?)", re.IGNORECASE),
     re.compile(r"disregard\s+(the\s+)?(user'?s?\s+question|retrieved\s+sources?)", re.IGNORECASE),
     re.compile(r"return\s+(this\s+)?secret\s+value", re.IGNORECASE),
     re.compile(r"you\s+are\s+now\s+in\s+developer\s+mode", re.IGNORECASE),
     re.compile(r"system\s*:\s*override", re.IGNORECASE),
 ]
+
 
 DOC_INJECTION_PATTERNS = [
     re.compile(r"ignore\s+(all\s+)?(previous|prior)\s+instructions?", re.IGNORECASE),
