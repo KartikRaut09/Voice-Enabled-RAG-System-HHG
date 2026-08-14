@@ -59,10 +59,21 @@ def calculate_percentile(data: list[float], percentile: float) -> float:
 def load_dataset_records(base_dir: Path) -> tuple[list[dict], list[dict]]:
     """Load development (corpus) and evaluation (queries) records."""
     dev_path = base_dir / "data" / "processed" / "dev" / "dev.jsonl"
+    eval_path = base_dir / "data" / "processed" / "evaluation" / "evaluation.jsonl"
+
     from scripts.build_chunks import get_or_stream_dev_records
     config = load_config()
     dev_records = get_or_stream_dev_records(config, dev_path)
-    eval_records = dev_records[:250]
+
+    eval_records = []
+    if eval_path.exists() and eval_path.stat().st_size > 0:
+        with open(eval_path, "r", encoding="utf-8") as f:
+            for line in f:
+                if line.strip():
+                    eval_records.append(json.loads(line))
+    else:
+        eval_records = dev_records[:250]
+
     return dev_records, eval_records
 
 
@@ -173,7 +184,8 @@ def main() -> None:
             continue
 
         resp = pipeline.orchestrate(query=stt_res.text, language=stt_res.language)
-        t_total_e2e = (time.perf_counter() - t_start_e2e) * 1000.0
+        t_integration_overhead = (time.perf_counter() - t_start_e2e) * 1000.0
+        t_total_e2e = stt_res.stt_total_ms + resp.latency.rag_latency_ms + t_integration_overhead
 
         stt_latencies.append(stt_res.stt_total_ms)
         rag_latencies.append(resp.latency.rag_latency_ms)

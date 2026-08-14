@@ -180,13 +180,14 @@ class MockSTTProvider(STTProvider):
         t_prep = 2.0  # Simulated preprocessing ms
         t_infer = max(1.0, self.simulated_latency_ms - t_prep)
 
-        # Check for signature matches in audio header
-        sig = audio_bytes[:16].decode("latin-1", errors="ignore")
+        # Check for signature matches in audio header / initial payload
+        sig = audio_bytes[:256].decode("latin-1", errors="ignore")
         text, detected_lang = self.default_transcript, self.default_language
         for k, (c_text, c_lang) in self.custom_transcripts.items():
             if k in sig:
                 text, detected_lang = c_text, c_lang
                 break
+
 
         final_lang = normalize_stt_language(detected_lang, text, explicit_lang=language)
 
