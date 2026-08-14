@@ -97,6 +97,16 @@ vector_store:
   top_k: 10
   fetch_k: 50
 
+retrieval:
+  bm25:
+    k1: 1.5
+    b: 0.75
+    index_dir: "data/indexes/bm25_structure_aware"
+    tokenizer: "indic_unicode"
+    top_k: 10
+    fetch_k: 50
+
+
 
 
 
