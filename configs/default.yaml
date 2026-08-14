@@ -62,4 +62,25 @@ dataset:
   eval_samples_per_language: 50
   output_dir: "data/processed"
 
+chunking:
+  default_strategy: "passage"
+  strategies:
+    - "passage"
+    - "fixed"
+    - "overlap"
+    - "structure_aware"
+  
+  # Data-driven parameters based on Phase 1 analysis (mean passage len = 60.1 words, median = 53 words)
+  fixed:
+    max_words: 80
+    overlap_words: 0
+
+  overlap:
+    max_words: 80
+    overlap_words: 20
+
+  structure_aware:
+    max_words: 80
+
+
 
