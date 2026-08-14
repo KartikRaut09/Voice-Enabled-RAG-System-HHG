@@ -66,118 +66,22 @@ def create_app() -> FastAPI:
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
-    # Query endpoint — Grounded RAG query pipeline (Phase 6)
+    # Global pipeline instance (lazy/configurable)
+    from backend.app.pipeline import RAGPipeline
+    pipeline = RAGPipeline(config={"pipeline": {"dense_top_k": 50, "lexical_top_k": 50, "rrf_k": 60, "context_top_k": 5}})
+
+    # Query endpoint — Thin route delegating directly to RAGPipeline (Phase 7)
     @app.post("/api/query", response_model=QueryResponse)
     async def query(request: QueryRequest) -> QueryResponse:
-        """Process a query through the grounded RAG pipeline."""
-        from backend.app.context import ContextBuilder, ContextItem
-        from backend.app.generation import get_llm_provider
-
+        """Process a query through the orchestrated RAG pipeline."""
         request_id = str(uuid.uuid4())
-        tracker = LatencyTracker()
-
-        # 1. Query Processing
-        tracker.start("query_processing")
-        clean_query = request.query.strip()
-        query_lang = request.language
-        tracker.stop("query_processing")
-
-        if not clean_query:
-            timings = tracker.to_dict()
-            latency = LatencyBreakdown(
-                rag_latency_ms=timings.get("rag_latency", 0.0),
-                e2e_latency_ms=timings.get("e2e_latency", 0.0),
-                total_request_ms=timings.get("rag_latency", 0.0),
-            )
-            return QueryResponse(
-                request_id=request_id,
-                query=request.query,
-                answer="उपलब्ध स्रोतों में इस प्रश्न का उत्तर देने के लिए पर्याप्त जानकारी नहीं है।",
-                sources=[],
-                latency=latency,
-                status="success",
-            )
-
-        # 2. Embedding & Retrieval
-        tracker.start("embedding")
-        # In API mode, load from persistent index or mock context if available
-        tracker.stop("embedding")
-
-        tracker.start("retrieval")
-        # Simulate / perform candidate retrieval
-        # In test / lightweight mode, mock candidates or query store
-        retrieved_candidates = request.options.get("mock_candidates", [])
-        tracker.stop("retrieval")
-
-        # 3. Context Construction
-        tracker.start("reranking")
-        context_builder = ContextBuilder(default_top_k=5)
-        context_str, context_items = context_builder.build(
-            query=clean_query,
-            retrieved_results=retrieved_candidates,
-            top_k=5,
-        )
-        tracker.stop("reranking")
-
-        # 4. Grounded LLM Generation
-        tracker.start("generation")
-        llm_provider = get_llm_provider()
-        gen_result = llm_provider.generate(
-            query=clean_query,
-            context_items=context_items,
-            language=query_lang,
-            temperature=0.1,
-            max_tokens=256,
-        )
-        tracker.stop("generation")
-
-        timings = tracker.to_dict()
-        latency = LatencyBreakdown(
-            query_processing_ms=timings.get("query_processing", 0.0),
-            embedding_ms=timings.get("embedding", 0.0),
-            retrieval_ms=timings.get("retrieval", 0.0),
-            reranking_ms=timings.get("reranking", 0.0),
-            generation_ms=timings.get("generation", 0.0),
-            guardrails_ms=timings.get("guardrails", 0.0),
-            stt_latency_ms=timings.get("stt_latency", 0.0),
-            rag_latency_ms=timings.get("rag_latency", 0.0),
-            e2e_latency_ms=timings.get("e2e_latency", 0.0),
-            total_request_ms=timings.get("rag_latency", 0.0),
-        )
-
-        formatted_sources = [
-            SourcePassage(
-                passage_text=s.get("text_snippet", ""),
-                score=float(s.get("score", 0.0)),
-                metadata={
-                    "source_id": s.get("source_id"),
-                    "parent_passage_id": s.get("parent_passage_id"),
-                    "chunk_id": s.get("chunk_id"),
-                    "rank": s.get("rank"),
-                    "language": s.get("language"),
-                },
-            )
-            for s in gen_result.sources
-        ]
-
-        logger.info(
-            "query_processed",
+        return pipeline.orchestrate(
+            query=request.query,
+            language=request.language,
             request_id=request_id,
-            query=clean_query,
-            language=query_lang,
-            latency_ms=latency.rag_latency_ms,
-            sources_count=len(formatted_sources),
-            abstention=gen_result.is_abstention,
+            options=request.options,
         )
 
-        return QueryResponse(
-            request_id=request_id,
-            query=clean_query,
-            answer=gen_result.answer,
-            sources=formatted_sources,
-            latency=latency,
-            status="success",
-        )
 
 
     # Serve frontend static files

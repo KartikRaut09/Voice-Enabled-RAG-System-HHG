@@ -132,6 +132,15 @@ generation:
   timeout_seconds: 15.0
   insufficient_evidence_message: "उपलब्ध स्रोतों में इस प्रश्न का उत्तर देने के लिए पर्याप्त जानकारी नहीं है।"
 
+pipeline:
+  reranking_enabled: false
+  dense_top_k: 50
+  lexical_top_k: 50
+  fusion_strategy: "rrf"
+  rrf_k: 60
+  context_top_k: 5
+
+
 
 
 

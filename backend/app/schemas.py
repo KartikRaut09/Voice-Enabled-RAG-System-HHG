@@ -60,4 +60,7 @@ class QueryResponse(BaseModel):
     latency: LatencyBreakdown
     status: str = "success"
     error: str | None = None
+    query_metadata: dict = Field(default_factory=dict)
+    pipeline_metadata: dict = Field(default_factory=dict)
     guardrail_flags: dict = Field(default_factory=dict)
+
