@@ -21,9 +21,10 @@ def test_query_processor_script_detection():
     """Test deterministic Indic script detection when language is not explicitly provided."""
     processor = QueryProcessor()
 
-    # Hindi / Devanagari
-    res_hi = processor.process("ताजमहल कहाँ है?")
-    assert res_hi.language == "hin_Deva"
+    # Generic Devanagari (Hindi / Marathi)
+    res_deva = processor.process("ताजमहल कहाँ है?")
+    assert res_deva.language == "und_Deva"
+
 
     # Bengali
     res_bn = processor.process("কলকাতা কোন নদীর তীরে?")

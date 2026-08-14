@@ -15,7 +15,7 @@ from backend.app.config import get_logger
 from backend.app.context import ContextBuilder
 from backend.app.fusion import aggregate_parent_passages, reciprocal_rank_fusion
 from backend.app.generation import LLMProvider, get_llm_provider
-
+from backend.app.guardrails import Guardrail, GuardrailResult
 from backend.app.middleware import LatencyTracker
 from backend.app.query_processor import QueryInput, QueryProcessor
 from backend.app.reranking import CrossEncoderReranker, rerank_candidates
@@ -25,7 +25,7 @@ logger = get_logger(__name__)
 
 
 class RAGPipeline:
-    """End-to-end Text RAG Pipeline Orchestrator."""
+    """End-to-end Text RAG Pipeline Orchestrator with Guardrails."""
 
     def __init__(
         self,
@@ -36,6 +36,7 @@ class RAGPipeline:
         context_builder: ContextBuilder | None = None,
         llm_provider: LLMProvider | None = None,
         query_processor: QueryProcessor | None = None,
+        guardrail: Guardrail | None = None,
         config: dict | None = None,
     ) -> None:
         self.config = config or {}
@@ -50,11 +51,13 @@ class RAGPipeline:
         self.query_processor = query_processor or QueryProcessor()
         self.context_builder = context_builder or ContextBuilder(default_top_k=self.context_top_k)
         self.llm_provider = llm_provider or get_llm_provider(self.config)
+        self.guardrail = guardrail or Guardrail(self.config)
 
         self.embedder = embedder
         self.vector_store = vector_store
         self.bm25_index = bm25_index
         self.reranker = reranker
+
 
     def orchestrate(
         self,
@@ -89,6 +92,28 @@ class RAGPipeline:
             )
 
         clean_query = q_input.processed_query
+
+        # 1b. Input Guardrail Verification
+        tracker.start("guardrails")
+        input_guard = self.guardrail.validate_input_query(clean_query)
+        tracker.stop("guardrails")
+
+        if not input_guard.passed or input_guard.action == "block":
+            timings = tracker.to_dict()
+            latency = self._build_latency(timings)
+            return QueryResponse(
+                request_id=req_id,
+                query=q_input.original_query,
+                answer="उपलब्ध स्रोतों में इस प्रश्न का उत्तर देने के लिए पर्याप्त जानकारी नहीं है।",
+                sources=[],
+                latency=latency,
+                status="error",
+                error=input_guard.reason,
+                query_metadata=q_input.to_dict(),
+                pipeline_metadata={"retrieval_mode": "blocked", "reranking": False},
+                guardrail_flags=input_guard.to_dict(),
+            )
+
         retrieval_mode = "hybrid"
         retrieved_cands: list[dict[str, Any]] = []
 
@@ -237,6 +262,29 @@ class RAGPipeline:
             )
         tracker.stop("generation")
 
+        # 6. Post-Generation Output Guardrails & Provenance Verification
+        tracker.start("guardrails")
+        out_guard = self.guardrail.validate_response(
+            query=clean_query,
+            answer=gen_res.answer,
+            context_items=context_items,
+            retrieval_mode=retrieval_mode,
+            is_abstention=gen_res.is_abstention,
+        )
+        tracker.stop("guardrails")
+
+        final_answer = out_guard.sanitized_answer or gen_res.answer
+        if out_guard.action == "abstain":
+            status_flag = "insufficient_evidence"
+        elif out_guard.action == "block":
+            status_flag = "error"
+        elif retrieval_mode in ("dense_only", "bm25_only"):
+            status_flag = "degraded"
+        elif gen_res.is_abstention:
+            status_flag = "insufficient_evidence"
+        else:
+            status_flag = "success"
+
         timings = tracker.to_dict()
         latency = self._build_latency(timings)
 
@@ -255,10 +303,6 @@ class RAGPipeline:
             for s in gen_res.sources
         ]
 
-        status_flag = "degraded" if retrieval_mode in ("dense_only", "bm25_only") else (
-            "insufficient_evidence" if gen_res.is_abstention else "success"
-        )
-
         logger.info(
             "query_completed",
             request_id=req_id,
@@ -274,7 +318,7 @@ class RAGPipeline:
         return QueryResponse(
             request_id=req_id,
             query=q_input.original_query,
-            answer=gen_res.answer,
+            answer=final_answer,
             sources=formatted_sources,
             latency=latency,
             status=status_flag,
@@ -293,11 +337,11 @@ class RAGPipeline:
                     if c.get("parent_passage_id")
                 ],
             },
-
-
+            guardrail_flags=out_guard.to_dict(),
         )
 
     def _build_latency(self, timings: dict[str, float]) -> LatencyBreakdown:
+
         """Construct standard 3-metric LatencyBreakdown object."""
         return LatencyBreakdown(
             query_processing_ms=timings.get("query_processing", 0.0),

@@ -25,11 +25,15 @@ class QueryInput:
 
 
 def detect_indic_script(text: str) -> str | None:
-    """Lightweight deterministic Unicode range script detection for Indic languages."""
+    """Lightweight deterministic Unicode range script detection for Indic languages.
+
+    Returns generic 'und_Deva' for Devanagari text when specific language (Hindi vs Marathi)
+    is not provided, avoiding false linguistic assumptions.
+    """
     for ch in text:
         code = ord(ch)
         if 0x0900 <= code <= 0x097F:
-            return "hin_Deva"  # Hindi / Marathi Devanagari
+            return "und_Deva"  # Generic Devanagari (Hindi / Marathi)
         elif 0x0980 <= code <= 0x09FF:
             return "ben_Beng"  # Bengali
         elif 0x0B80 <= code <= 0x0BFF:
@@ -37,6 +41,7 @@ def detect_indic_script(text: str) -> str | None:
         elif 0x0C00 <= code <= 0x0C7F:
             return "tel_Telu"  # Telugu
     return None
+
 
 
 class QueryProcessor:

@@ -140,6 +140,16 @@ pipeline:
   rrf_k: 60
   context_top_k: 5
 
+guardrails:
+  enabled: true
+  max_query_length: 1000
+  citation_validation: true
+  evidence_check: true
+  prompt_injection_check: true
+  content_safety: true
+  fail_closed_on_security: true
+
+
 
 
 
