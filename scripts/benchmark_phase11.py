@@ -481,7 +481,7 @@ def main() -> None:
     # Optimization E: Persistent HTTP Connection Reuse
     persistent_llm = PersistentGroqLLMProvider(api_key=groq_api_key, model_name="llama-3.1-8b-instant")
     # Warmup keep-alive
-    persistent_llm.generate("भारत की राजधानी", [ContextItem(source_id=1, chunk_id="w", parent_passage_id=1, text="नई दिल्ली भारत की राजधानी है।", score=1.0, language="hin_Deva")])
+    persistent_llm.generate("भारत की राजधानी", [ContextItem(source_id=1, chunk_id="w", parent_passage_id="1", text="नई दिल्ली भारत की राजधानी है।", score=1.0, language="hin_Deva", retrieval_rank=1)])
 
     res_opt_e = run_benchmark_experiment(
         "Opt E: HTTP Connection Reuse",
