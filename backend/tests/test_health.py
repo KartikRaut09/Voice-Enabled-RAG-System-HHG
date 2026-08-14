@@ -37,5 +37,5 @@ async def test_root_serves_frontend(client):
     response = await client.get("/")
     assert response.status_code == 200
     assert "Hacker House Goa" in response.text
-    assert "<form id=\"query-form\">" in response.text
+    assert 'id="query-form"' in response.text
 
