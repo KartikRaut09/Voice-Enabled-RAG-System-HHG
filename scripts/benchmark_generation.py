@@ -113,11 +113,12 @@ def evaluate_generation_pipeline(
             lang_stats[lang] = {"grounded": [], "correct": [], "latency": []}
 
         gold_passages = [
-            p["passage_text"]
+            str(p.get("passage_text") or p.get("text") or "")
             for p in rec.get("passages", [])
             if p.get("is_selected", False)
         ]
         gold_text = " ".join(gold_passages)
+
 
         # 1. Retrieval
         t0 = time.perf_counter()
