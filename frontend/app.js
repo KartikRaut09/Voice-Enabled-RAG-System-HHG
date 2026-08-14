@@ -1,14 +1,14 @@
 /**
- * HH GOA 2026 — Voice RAG Application
- * Handles text query, voice recording, and response rendering.
- * API endpoints: GET /health, POST /api/query, POST /api/voice-query
+ * HH GOA 2026 — Voice RAG Application Logic
+ * Integrates text query, Sarvam voice recording, comprehensive RAG metrics,
+ * system diagnostics, and verified performance benchmarks.
  */
 (function () {
     'use strict';
 
     const API_BASE = window.location.origin;
 
-    // ── DOM References ──
+    // DOM Elements
     const statusIndicator = document.getElementById('status-indicator');
     const statusText = document.getElementById('status-text');
     const queryForm = document.getElementById('query-form');
@@ -18,23 +18,30 @@
     const micIcon = document.getElementById('mic-icon');
     const stopIcon = document.getElementById('stop-icon');
     const voiceState = document.getElementById('voice-state');
-    const voicePulse = document.getElementById('voice-pulse');
+    const voiceDot = document.getElementById('voice-dot');
     const voiceStateText = document.getElementById('voice-state-text');
-    const resultsSection = document.getElementById('results-section');
-    const transcriptionCard = document.getElementById('transcription-card');
-    const transcriptionText = document.getElementById('transcription-text');
-    const answerText = document.getElementById('answer-text');
-    const answerStatus = document.getElementById('answer-status');
-    const sourcesSection = document.getElementById('sources-section');
-    const sourcesGrid = document.getElementById('sources-grid');
-    const latencyBody = document.getElementById('latency-body');
+
     const loadingSection = document.getElementById('loading-section');
     const loadingText = document.getElementById('loading-text');
     const errorSection = document.getElementById('error-section');
     const errorText = document.getElementById('error-text');
     const errorDismiss = document.getElementById('error-dismiss');
 
-    // ── Voice Recording State ──
+    const resultsSection = document.getElementById('results-section');
+    const queryEcho = document.getElementById('query-echo');
+    const queryEchoText = document.getElementById('query-echo-text');
+    const transcriptionRow = document.getElementById('transcription-row');
+    const transcriptionText = document.getElementById('transcription-text');
+    const answerText = document.getElementById('answer-text');
+    const answerStatus = document.getElementById('answer-status');
+    const sourcesRow = document.getElementById('sources-row');
+    const sourcesCount = document.getElementById('sources-count');
+    const sourcesList = document.getElementById('sources-list');
+    const perfBody = document.getElementById('perf-body');
+    const systemGrid = document.getElementById('system-grid');
+    const benchmarksSection = document.getElementById('benchmarks-section');
+
+    // Voice Recording State
     let mediaRecorder = null;
     let audioChunks = [];
     let voiceMode = 'IDLE'; // IDLE | RECORDING | TRANSCRIBING | PROCESSING | SUCCESS | ERROR
@@ -44,25 +51,24 @@
         try {
             statusIndicator.className = 'status-badge checking';
             statusText.textContent = 'Checking…';
-            const res = await fetch(API_BASE + '/health', { signal: AbortSignal.timeout(5000) });
+            const res = await fetch(API_BASE + '/health', { signal: AbortSignal.timeout(4000) });
             if (res.ok) {
                 const data = await res.json();
                 statusIndicator.className = 'status-badge connected';
-                statusText.textContent = data.app_name + ' v' + data.version;
+                statusText.textContent = 'SYSTEM LIVE';
             } else {
-                throw new Error('Health check failed');
+                throw new Error('Health probe failed');
             }
         } catch {
             statusIndicator.className = 'status-badge disconnected';
-            statusText.textContent = 'Disconnected';
+            statusText.textContent = 'DISCONNECTED';
         }
     }
 
-    // ── UI State Management ──
-    function showLoading(message) {
-        loadingText.textContent = message || 'Processing query…';
+    // ── UI Visibility Helpers ──
+    function showLoading(msg) {
+        loadingText.textContent = msg || 'Processing query…';
         loadingSection.classList.remove('hidden');
-        resultsSection.classList.add('hidden');
         errorSection.classList.add('hidden');
     }
 
@@ -72,9 +78,8 @@
 
     function showError(msg) {
         hideLoading();
-        errorSection.classList.remove('hidden');
         errorText.textContent = msg;
-        resultsSection.classList.add('hidden');
+        errorSection.classList.remove('hidden');
     }
 
     function hideError() {
@@ -86,22 +91,22 @@
         switch (state) {
             case 'RECORDING':
                 voiceState.classList.remove('hidden');
-                voicePulse.className = 'voice-pulse';
+                voiceDot.className = 'voice-dot';
                 voiceStateText.textContent = text || 'Recording… Click ■ to stop';
                 micBtn.classList.add('recording');
                 micIcon.classList.add('hidden');
                 stopIcon.classList.remove('hidden');
                 break;
             case 'TRANSCRIBING':
-                voicePulse.className = 'voice-pulse transcribing';
-                voiceStateText.textContent = text || 'Transcribing speech…';
+                voiceDot.className = 'voice-dot transcribing';
+                voiceStateText.textContent = text || 'Transcribing with Sarvam saaras:v3…';
                 micBtn.classList.remove('recording');
                 micIcon.classList.remove('hidden');
                 stopIcon.classList.add('hidden');
                 break;
             case 'PROCESSING':
-                voicePulse.className = 'voice-pulse processing';
-                voiceStateText.textContent = text || 'Retrieving answer…';
+                voiceDot.className = 'voice-dot processing';
+                voiceStateText.textContent = text || 'Executing Hybrid RAG Pipeline…';
                 break;
             case 'SUCCESS':
             case 'ERROR':
@@ -116,110 +121,132 @@
         }
     }
 
-    // ── Render Latency Table ──
-    function renderLatency(latency) {
-        latencyBody.innerHTML = '';
+    // ── Performance Table Renderer ──
+    function renderPerformance(latency) {
+        perfBody.innerHTML = '';
+        if (!latency) return;
 
-        // Component timings
-        var components = [
-            ['STT', latency.stt_ms],
+        const stages = [
+            ['STT Inference', latency.stt_ms],
             ['Query Processing', latency.query_processing_ms],
-            ['Embedding', latency.embedding_ms],
-            ['Retrieval', latency.retrieval_ms],
-            ['Reranking', latency.reranking_ms],
-            ['Generation', latency.generation_ms],
-            ['Guardrails', latency.guardrails_ms],
+            ['Embedding (Multilingual E5)', latency.embedding_ms],
+            ['Hybrid Retrieval (FAISS + BM25)', latency.retrieval_ms],
+            ['RRF Fusion & Context', latency.reranking_ms],
+            ['LLM Generation (Groq LLaMA-3.1)', latency.generation_ms],
+            ['Guardrails Validation', latency.guardrails_ms],
         ];
 
-        for (var i = 0; i < components.length; i++) {
-            var name = components[i][0];
-            var ms = components[i][1];
-            if (ms === undefined || ms === null || ms === 0) continue;
-            var tr = document.createElement('tr');
-            tr.innerHTML = '<td>' + name + '</td><td>' + ms.toFixed(2) + ' ms</td>';
-            latencyBody.appendChild(tr);
+        stages.forEach(function (stage) {
+            const name = stage[0];
+            const ms = stage[1];
+            if (ms !== undefined && ms !== null && ms > 0) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = '<td>' + name + '</td><td>' + ms.toFixed(2) + ' ms</td>';
+                perfBody.appendChild(tr);
+            }
+        });
+
+        // Primary highlights
+        if (latency.rag_latency_ms) {
+            const trRag = document.createElement('tr');
+            trRag.className = 'perf-highlight';
+            trRag.innerHTML = '<td>RAG Pipeline Latency</td><td>' + latency.rag_latency_ms.toFixed(2) + ' ms</td>';
+            perfBody.appendChild(trRag);
         }
 
-        // Divider
-        var divRow = document.createElement('tr');
-        divRow.className = 'latency-divider';
-        divRow.innerHTML = '<td colspan="2">PRIMARY METRICS</td>';
-        latencyBody.appendChild(divRow);
+        if (latency.stt_latency_ms) {
+            const trStt = document.createElement('tr');
+            trStt.className = 'perf-highlight';
+            trStt.innerHTML = '<td>STT Latency (Sarvam)</td><td>' + latency.stt_latency_ms.toFixed(2) + ' ms</td>';
+            perfBody.appendChild(trStt);
+        }
 
-        // Primary metrics
-        var primaries = [
-            ['STT Latency', latency.stt_latency_ms, 'latency-primary'],
-            ['RAG Latency', latency.rag_latency_ms, 'latency-primary'],
-            ['E2E Latency', latency.e2e_latency_ms, 'latency-total'],
-        ];
-
-        for (var j = 0; j < primaries.length; j++) {
-            var pName = primaries[j][0];
-            var pMs = primaries[j][1];
-            var pClass = primaries[j][2];
-            if (pMs === undefined || pMs === null) continue;
-            var ptr = document.createElement('tr');
-            ptr.className = pClass;
-            ptr.innerHTML = '<td>' + pName + '</td><td>' + pMs.toFixed(2) + ' ms</td>';
-            latencyBody.appendChild(ptr);
+        const e2e = latency.e2e_latency_ms || latency.total_request_ms || latency.rag_latency_ms;
+        if (e2e) {
+            const trE2e = document.createElement('tr');
+            trE2e.className = 'perf-total';
+            trE2e.innerHTML = '<td>Full E2E Latency</td><td>' + e2e.toFixed(2) + ' ms</td>';
+            perfBody.appendChild(trE2e);
         }
     }
 
-    // ── Render Sources ──
+    // ── Sources Renderer ──
     function renderSources(sources) {
-        sourcesGrid.innerHTML = '';
-
+        sourcesList.innerHTML = '';
         if (!sources || sources.length === 0) {
-            sourcesSection.classList.add('hidden');
+            sourcesRow.classList.add('hidden');
             return;
         }
 
-        sourcesSection.classList.remove('hidden');
+        sourcesRow.classList.remove('hidden');
+        sourcesCount.textContent = String(sources.length).padStart(2, '0') + ' SOURCES RETRIEVED';
 
-        for (var i = 0; i < sources.length; i++) {
-            var src = sources[i];
-            var panel = document.createElement('div');
-            panel.className = 'source-panel';
+        sources.forEach(function (src, idx) {
+            const item = document.createElement('div');
+            item.className = 'source-item';
 
-            // Detect language from metadata
-            var lang = '';
-            if (src.metadata) {
-                lang = src.metadata.language || src.metadata.lang || '';
-            }
+            const lang = (src.metadata && (src.metadata.language || src.metadata.lang)) || 'INDIC';
+            const score = typeof src.score === 'number' ? src.score.toFixed(3) : '—';
 
-            var headerHTML = '<div class="source-header">' +
-                '<span class="source-rank">SOURCE ' + String(i + 1).padStart(2, '0') + '</span>';
+            item.innerHTML =
+                '<div class="source-top">' +
+                    '<span class="source-tag">[' + String(idx + 1).padStart(2, '0') + ']</span>' +
+                    '<span class="source-lang-tag">' + escapeHTML(lang) + '</span>' +
+                    '<span class="source-score-val">Score ' + score + '</span>' +
+                '</div>' +
+                '<p class="source-body">' + escapeHTML(src.passage_text || '') + '</p>';
 
-            if (lang) {
-                headerHTML += '<span class="source-lang">' + escapeHTML(lang) + '</span>';
-            }
-
-            headerHTML += '<span class="source-score">' + src.score.toFixed(3) + '</span>' +
-                '</div>';
-
-            panel.innerHTML = headerHTML + '<p class="source-text">' + escapeHTML(src.passage_text) + '</p>';
-            sourcesGrid.appendChild(panel);
-        }
+            sourcesList.appendChild(item);
+        });
     }
 
-    // ── Render Full Response ──
-    function renderResponse(data, isVoice) {
+    // ── System Diagnostics Renderer ──
+    function renderSystemDiagnostics(data) {
+        systemGrid.innerHTML = '';
+
+        const pipeMeta = data.pipeline_metadata || {};
+        const qMeta = data.query_metadata || {};
+        const guard = data.guardrail_flags || {};
+
+        const stats = [
+            ['STT Provider', 'Sarvam AI (saaras:v3)'],
+            ['LLM Provider', (pipeMeta.provider || 'Groq') + ' · ' + (pipeMeta.model_used || 'llama-3.1-8b-instant')],
+            ['Retrieval Mode', (pipeMeta.retrieval_mode || 'Hybrid (FAISS + BM25 + RRF)').toUpperCase()],
+            ['Detected Lang', (qMeta.language || data.language || 'Auto-Detected').toUpperCase()],
+            ['Tokens (In/Out)', (pipeMeta.input_tokens || '—') + ' / ' + (pipeMeta.output_tokens || '—')],
+            ['Guardrails', guard.passed === false ? 'BLOCKED' : 'PASS (Citations & Grounding Active)'],
+        ];
+
+        stats.forEach(function (pair) {
+            const div = document.createElement('div');
+            div.className = 'system-stat';
+            div.innerHTML = '<span class="stat-key">' + pair[0] + '</span><span class="stat-val">' + escapeHTML(String(pair[1])) + '</span>';
+            systemGrid.appendChild(div);
+        });
+    }
+
+    // ── Response Orchestrator ──
+    function renderResponse(data, originalQuery, isVoice) {
         hideLoading();
         hideError();
 
-        // Show transcription for voice queries
+        // 1. Query Echo
+        if (originalQuery || data.query) {
+            queryEcho.classList.remove('hidden');
+            queryEchoText.textContent = originalQuery || data.query;
+        }
+
+        // 2. Transcription (Voice Query)
         if (isVoice && data.transcription) {
-            transcriptionCard.classList.remove('hidden');
+            transcriptionRow.classList.remove('hidden');
             transcriptionText.textContent = data.transcription;
             queryInput.value = data.transcription;
         } else {
-            transcriptionCard.classList.add('hidden');
+            transcriptionRow.classList.add('hidden');
         }
 
-        // Answer
-        answerText.textContent = data.answer || '';
-
-        // Status
+        // 3. Answer
+        answerText.textContent = data.answer || 'No response generated.';
         if (data.status && data.status !== 'success') {
             answerStatus.classList.remove('hidden');
             answerStatus.textContent = 'Status: ' + data.status;
@@ -227,42 +254,44 @@
             answerStatus.classList.add('hidden');
         }
 
-        // Sources
+        // 4. Sources
         renderSources(data.sources);
 
-        // Latency
-        if (data.latency) {
-            renderLatency(data.latency);
-        }
+        // 5. Performance
+        renderPerformance(data.latency);
 
-        // Show results
+        // 6. System Diagnostics
+        renderSystemDiagnostics(data);
+
+        // 7. Show Results & Benchmarks
         resultsSection.classList.remove('hidden');
+        benchmarksSection.classList.remove('hidden');
 
-        // Scroll to results
+        // Smooth scroll to results
         resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    // ── Text Query ──
-    async function submitQuery(queryText) {
+    // ── Text Query Dispatch ──
+    async function submitTextQuery(text) {
         submitBtn.disabled = true;
-        submitBtn.textContent = 'SEARCHING…';
-        showLoading('Retrieving answer…');
+        submitBtn.textContent = 'ASKING…';
+        showLoading('Retrieving grounded answer…');
 
         try {
-            var res = await fetch(API_BASE + '/api/query', {
+            const res = await fetch(API_BASE + '/api/query', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: queryText }),
+                body: JSON.stringify({ query: text }),
             });
 
             if (!res.ok) {
-                var err = {};
-                try { err = await res.json(); } catch (_) { /* ignore */ }
-                throw new Error(err.detail || 'Request failed: ' + res.status);
+                let errData = {};
+                try { errData = await res.json(); } catch (_) {}
+                throw new Error(errData.detail || 'Request failed with status ' + res.status);
             }
 
-            var data = await res.json();
-            renderResponse(data, false);
+            const data = await res.json();
+            renderResponse(data, text, false);
         } catch (err) {
             showError(err.message || 'Failed to process query');
         } finally {
@@ -271,10 +300,10 @@
         }
     }
 
-    // ── Voice Recording ──
+    // ── Voice Query Dispatch ──
     async function startRecording() {
         try {
-            var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaRecorder = new MediaRecorder(stream);
             audioChunks = [];
 
@@ -284,13 +313,13 @@
 
             mediaRecorder.onstop = function () {
                 stream.getTracks().forEach(function (track) { track.stop(); });
-                processVoiceQuery();
+                processVoiceAudio();
             };
 
             mediaRecorder.start();
             setVoiceState('RECORDING');
         } catch (err) {
-            showError('Microphone access denied or unavailable: ' + err.message);
+            showError('Microphone access unavailable: ' + err.message);
             setVoiceState('IDLE');
         }
     }
@@ -301,19 +330,19 @@
         }
     }
 
-    async function processVoiceQuery() {
+    async function processVoiceAudio() {
         setVoiceState('TRANSCRIBING');
-        showLoading('Transcribing speech…');
+        showLoading('Transcribing Indic voice with Sarvam AI…');
 
-        var audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        var formData = new FormData();
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const formData = new FormData();
         formData.append('file', audioBlob, 'speech.webm');
 
         try {
-            setVoiceState('PROCESSING', 'Processing voice query…');
-            loadingText.textContent = 'Retrieving answer…';
+            setVoiceState('PROCESSING', 'Orchestrating RAG Pipeline…');
+            loadingText.textContent = 'Retrieving grounded answer…';
 
-            var res = await fetch(API_BASE + '/api/voice-query', {
+            const res = await fetch(API_BASE + '/api/voice-query', {
                 method: 'POST',
                 body: formData,
             });
@@ -322,10 +351,10 @@
                 throw new Error('Voice query request failed: ' + res.status);
             }
 
-            var data = await res.json();
+            const data = await res.json();
 
             if (data.status === 'empty_transcription') {
-                showError('No speech detected in the recording. Please try again.');
+                showError('No speech detected in the audio payload. Please speak clearly and try again.');
                 setVoiceState('IDLE');
                 return;
             }
@@ -337,7 +366,7 @@
             }
 
             setVoiceState('IDLE');
-            renderResponse(data, true);
+            renderResponse(data, data.transcription, true);
 
         } catch (err) {
             showError('Voice query failed: ' + err.message);
@@ -345,18 +374,18 @@
         }
     }
 
-    // ── Utility ──
+    // ── Utilities ──
     function escapeHTML(str) {
-        var div = document.createElement('div');
+        const div = document.createElement('div');
         div.textContent = str;
         return div.innerHTML;
     }
 
-    // ── Event Listeners ──
+    // ── Event Handlers ──
     queryForm.addEventListener('submit', function (e) {
         e.preventDefault();
-        var q = queryInput.value.trim();
-        if (q) submitQuery(q);
+        const q = queryInput.value.trim();
+        if (q) submitTextQuery(q);
     });
 
     micBtn.addEventListener('click', function () {
@@ -371,9 +400,7 @@
         hideError();
     });
 
-    // ── Initialize ──
+    // ── Init ──
     checkHealth();
-
-    // Re-check health every 30 seconds
-    setInterval(checkHealth, 30000);
+    setInterval(checkHealth, 25000);
 })();

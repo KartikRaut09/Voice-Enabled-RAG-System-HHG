@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HHGoa RAG — Voice-Enabled RAG System</title>
+    <title>Voice RAG — Hacker House Goa 2026</title>
     <meta name="description" content="Voice-Enabled RAG System for MSMARCO-XI Indic Languages. Speak a question, get a grounded answer. Built at Hacker House Goa 2026.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,153 +12,175 @@
 </head>
 <body>
 
-    <!-- ═══════════ HEADER ═══════════ -->
+    <!-- ═══ HEADER ═══ -->
     <header id="app-header">
         <a href="https://hhgoa.com/" target="_blank" rel="noopener" class="header-brand" aria-label="2:47 PM Studio">
             <img src="assets/studio-247pm.png" alt="2:47 PM Studio" class="studio-logo" id="studio-logo">
         </a>
-        <div class="header-right">
-            <div id="status-indicator" class="status-badge disconnected">
-                <span id="status-dot" class="status-dot"></span>
-                <span id="status-text">Connecting…</span>
-            </div>
+        <div id="status-indicator" class="status-badge disconnected">
+            <span id="status-dot" class="status-dot"></span>
+            <span id="status-text">Connecting…</span>
         </div>
     </header>
 
-    <!-- ═══════════ HERO ═══════════ -->
+    <!-- ═══ HERO ═══ -->
     <section id="hero" class="hero">
-        <div class="hero-branding">
+        <div class="hero-content">
             <img src="assets/hacker-house-wordmark.png" alt="HACKER HOUSE" class="hero-wordmark" id="hero-wordmark">
-            <div class="hero-subtitle-row">
-                <img src="assets/goa-devanagari.png" alt="गोवा" class="hero-goa-mark" id="hero-goa-mark">
+            <div class="hero-sub">
+                <img src="assets/goa-devanagari.png" alt="गोवा" class="hero-goa" id="hero-goa-mark">
                 <span class="hero-year">2026</span>
             </div>
-        </div>
+            <div class="hero-rule">
+                <span class="rule-line"></span>
+                <h1 class="hero-title" id="hero-title">VOICE RAG</h1>
+                <span class="rule-line"></span>
+            </div>
+            <p class="hero-desc">Ask anything from the Indic corpus.<br>Hindi · Marathi · Bengali · Tamil · Telugu</p>
 
-        <div class="hero-tagline">
-            <h1 id="hero-title">VOICE RAG</h1>
-            <p class="hero-description">Speak a question. Get a grounded answer.<br>Hindi · Marathi · Bengali · Tamil · Telugu</p>
-        </div>
-
-        <!-- ═══════════ QUERY INTERFACE ═══════════ -->
-        <div class="query-container" id="query-container">
+            <!-- Query interface -->
             <form id="query-form" class="query-form" autocomplete="off">
-                <div class="query-input-row">
-                    <input
-                        type="text"
-                        id="query-input"
-                        class="query-input"
-                        placeholder="Ask your question…"
-                        autocomplete="off"
-                        required
-                    >
-                    <button type="button" id="mic-btn" class="mic-btn" title="Voice Input" aria-label="Record voice query">
-                        <svg id="mic-icon" class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                            <line x1="12" y1="19" x2="12" y2="23"/>
-                            <line x1="8" y1="23" x2="16" y2="23"/>
-                        </svg>
-                        <svg id="stop-icon" class="stop-icon hidden" viewBox="0 0 24 24" fill="currentColor">
-                            <rect x="4" y="4" width="16" height="16" rx="2"/>
-                        </svg>
+                <div class="query-bar">
+                    <input type="text" id="query-input" class="query-input" placeholder="Ask your question…" autocomplete="off" required>
+                    <button type="button" id="mic-btn" class="mic-btn" title="Record voice query" aria-label="Record voice query">
+                        <svg id="mic-icon" class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                        <svg id="stop-icon" class="stop-icon hidden" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
                     </button>
                     <button type="submit" id="submit-btn" class="submit-btn">ASK →</button>
                 </div>
             </form>
 
-            <!-- Voice state indicator -->
+            <!-- Voice state -->
             <div id="voice-state" class="voice-state hidden">
-                <div class="voice-state-inner">
-                    <div id="voice-pulse" class="voice-pulse"></div>
-                    <span id="voice-state-text" class="voice-state-text">Recording…</span>
-                </div>
+                <span id="voice-dot" class="voice-dot"></span>
+                <span id="voice-state-text" class="voice-state-text">Recording…</span>
             </div>
         </div>
 
-        <!-- Hero illustration -->
-        <div class="hero-illustration">
-            <img src="assets/hacker-workspace.jpg" alt="Hacker workspace in Goa" class="hero-illustration-img" id="hero-illustration">
+        <!-- Compositional workspace illustration -->
+        <div class="hero-artwork">
+            <img src="assets/hacker-workspace.jpg" alt="" class="hero-artwork-img" role="presentation">
         </div>
     </section>
 
-    <!-- ═══════════ FLORAL DIVIDER ═══════════ -->
-    <div class="floral-divider" id="floral-divider-1">
-        <img src="assets/floral-border.png" alt="" class="floral-border-img" role="presentation">
+    <!-- ═══ FLORAL STRIP ═══ -->
+    <div class="floral-strip" aria-hidden="true">
+        <img src="assets/floral-border.png" alt="" class="floral-strip-img">
     </div>
 
-    <!-- ═══════════ RESULTS ═══════════ -->
-    <main id="results-section" class="results-section hidden">
+    <!-- ═══ LOADING ═══ -->
+    <div id="loading-section" class="loading hidden">
+        <div class="loading-bar"></div>
+        <span id="loading-text" class="loading-label">Retrieving answer…</span>
+    </div>
 
-        <!-- Transcription (voice queries) -->
-        <div id="transcription-card" class="result-card transcription-card hidden">
-            <div class="card-label">TRANSCRIPTION</div>
-            <p id="transcription-text" class="transcription-text"></p>
-        </div>
+    <!-- ═══ ERROR ═══ -->
+    <div id="error-section" class="error-banner hidden">
+        <span class="error-icon">!</span>
+        <p id="error-text" class="error-msg"></p>
+        <button id="error-dismiss" class="error-x" type="button" aria-label="Dismiss error">×</button>
+    </div>
 
-        <!-- Answer -->
-        <div id="answer-card" class="result-card answer-card">
-            <div class="card-label">ANSWER</div>
-            <div id="answer-text" class="answer-text"></div>
-            <div id="answer-status" class="answer-status hidden"></div>
-        </div>
+    <!-- ═══ RESULTS PANEL ═══ -->
+    <main id="results-section" class="results hidden">
+        <div class="result-panel">
 
-        <!-- Sources -->
-        <div id="sources-section" class="sources-section hidden">
-            <div class="card-label">SOURCES</div>
-            <div id="sources-grid" class="sources-grid"></div>
-        </div>
+            <!-- Query echo -->
+            <div id="query-echo" class="panel-row query-row hidden">
+                <div class="row-label">QUERY</div>
+                <p id="query-echo-text" class="query-echo-text"></p>
+            </div>
 
-        <!-- Floral divider between sources and latency -->
-        <div class="floral-divider floral-divider-inner" id="floral-divider-2">
-            <img src="assets/floral-border.png" alt="" class="floral-border-img" role="presentation">
-        </div>
+            <!-- Transcription (voice) -->
+            <div id="transcription-row" class="panel-row transcription-row hidden">
+                <div class="row-label transcription-label">TRANSCRIPTION</div>
+                <p id="transcription-text" class="transcription-text"></p>
+            </div>
 
-        <!-- Performance -->
-        <div id="latency-section" class="result-card latency-card">
-            <div class="card-label">PIPELINE PERFORMANCE</div>
-            <div class="latency-grid">
-                <table id="latency-table" class="latency-table">
-                    <thead>
-                        <tr>
-                            <th>STAGE</th>
-                            <th>TIME</th>
-                        </tr>
-                    </thead>
-                    <tbody id="latency-body"></tbody>
-                </table>
+            <!-- Answer -->
+            <div id="answer-row" class="panel-row answer-row">
+                <div class="row-label">ANSWER</div>
+                <div id="answer-text" class="answer-text"></div>
+                <div id="answer-status" class="answer-meta hidden"></div>
+            </div>
+
+            <!-- Sources -->
+            <div id="sources-row" class="panel-row sources-row hidden">
+                <div class="row-header">
+                    <div class="row-label">SOURCES</div>
+                    <span id="sources-count" class="sources-count"></span>
+                </div>
+                <div id="sources-list" class="sources-list"></div>
+            </div>
+
+            <!-- Performance -->
+            <div id="perf-row" class="panel-row perf-row">
+                <div class="row-label">PERFORMANCE</div>
+                <div class="perf-grid">
+                    <table id="perf-table" class="perf-table">
+                        <tbody id="perf-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- System -->
+            <div id="system-row" class="panel-row system-row">
+                <div class="row-label">SYSTEM</div>
+                <div id="system-grid" class="system-grid"></div>
             </div>
         </div>
     </main>
 
-    <!-- ═══════════ LOADING STATE ═══════════ -->
-    <div id="loading-section" class="loading-section hidden">
-        <div class="loading-inner">
-            <div class="loading-spinner"></div>
-            <span class="loading-text" id="loading-text">Processing query…</span>
-        </div>
-    </div>
-
-    <!-- ═══════════ ERROR STATE ═══════════ -->
-    <div id="error-section" class="error-section hidden">
-        <div class="error-inner">
-            <span class="error-icon">⚠</span>
-            <p id="error-text" class="error-text"></p>
-            <button id="error-dismiss" class="error-dismiss" type="button">DISMISS</button>
-        </div>
-    </div>
-
-    <!-- ═══════════ FOOTER ═══════════ -->
-    <footer id="app-footer" class="app-footer">
-        <div class="footer-illustration">
-            <img src="assets/hackers-table.jpg" alt="Hackers building at Hacker House Goa" class="footer-illustration-img" id="footer-illustration">
-        </div>
-        <div class="footer-content">
-            <div class="footer-brand">
-                <img src="assets/hh-goa-combined.png" alt="Hacker House Goa" class="footer-hh-logo">
+    <!-- ═══ BENCHMARKS ═══ -->
+    <section id="benchmarks-section" class="benchmarks hidden">
+        <div class="bench-inner">
+            <div class="row-label bench-label">VALIDATED BENCHMARKS</div>
+            <div class="bench-grid">
+                <div class="bench-group">
+                    <div class="bench-title">RAG Latency</div>
+                    <div class="bench-metrics">
+                        <span class="bench-metric"><b>P50</b> 78.45 ms</span>
+                        <span class="bench-metric"><b>P70</b> 93.20 ms</span>
+                        <span class="bench-metric"><b>P100</b> 146.85 ms</span>
+                    </div>
+                </div>
+                <div class="bench-group">
+                    <div class="bench-title">STT Latency</div>
+                    <div class="bench-metrics">
+                        <span class="bench-metric"><b>P50</b> 542.75 ms</span>
+                        <span class="bench-metric"><b>P70</b> 586.74 ms</span>
+                        <span class="bench-metric"><b>P100</b> 1073.40 ms</span>
+                    </div>
+                </div>
+                <div class="bench-group">
+                    <div class="bench-title">Retrieval Quality</div>
+                    <div class="bench-metrics">
+                        <span class="bench-metric"><b>Recall@10</b> 90%</span>
+                        <span class="bench-metric"><b>MRR</b> 63.85%</span>
+                        <span class="bench-metric"><b>Groundedness</b> 96%</span>
+                    </div>
+                </div>
+                <div class="bench-group">
+                    <div class="bench-title">Answer Quality</div>
+                    <div class="bench-metrics">
+                        <span class="bench-metric"><b>Correctness</b> 88%</span>
+                        <span class="bench-metric"><b>Citations</b> 98%</span>
+                        <span class="bench-metric"><b>WER</b> 4.87%</span>
+                    </div>
+                </div>
             </div>
-            <p class="footer-text">Task #2 — Voice-Enabled RAG · #RAGInGoa</p>
-            <p class="footer-credits">Sarvam AI · Groq · FAISS · BM25 · RRF</p>
+        </div>
+    </section>
+
+    <!-- ═══ FOOTER ═══ -->
+    <footer class="app-footer">
+        <div class="footer-art">
+            <img src="assets/hackers-table.jpg" alt="Builders at Hacker House Goa" class="footer-art-img">
+        </div>
+        <div class="footer-info">
+            <img src="assets/hh-goa-combined.png" alt="Hacker House Goa" class="footer-mark">
+            <p class="footer-line">Task #2 — Voice-Enabled RAG · #RAGInGoa</p>
+            <p class="footer-sub">Sarvam AI · Groq · FAISS · BM25 · RRF</p>
         </div>
     </footer>
 
