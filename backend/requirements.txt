@@ -10,3 +10,5 @@ anyio>=4.0.0
 pyyaml>=6.0
 structlog>=23.2.0
 aiofiles>=23.2.0
+datasets>=2.16.0
+pyarrow>=14.0.0

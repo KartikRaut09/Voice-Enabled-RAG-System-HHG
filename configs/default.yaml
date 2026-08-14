@@ -33,3 +33,33 @@ latency:
     - generation
     - guardrails
 
+dataset:
+  name: "ai4bharat/MSMARCO-XI"
+  hf_url: "https://huggingface.co/datasets/ai4bharat/MSMARCO-XI"
+  sample_seed: 42
+  languages:
+    - code: "hin"
+      name: "Hindi"
+      train_file: "train/hintrain.parquet"
+      val_file: "validation/hinval.parquet"
+    - code: "mar"
+      name: "Marathi"
+      train_file: "train/martrain.parquet"
+      val_file: "validation/marval.parquet"
+    - code: "ben"
+      name: "Bengali"
+      train_file: "train/bentrain.parquet"
+      val_file: "validation/benval.parquet"
+    - code: "tam"
+      name: "Tamil"
+      train_file: "train/tamtrain.parquet"
+      val_file: "validation/tamval.parquet"
+    - code: "tel"
+      name: "Telugu"
+      train_file: null # Telugu train file not published; validation available
+      val_file: "validation/telval.parquet"
+  dev_samples_per_language: 200
+  eval_samples_per_language: 50
+  output_dir: "data/processed"
+
+
