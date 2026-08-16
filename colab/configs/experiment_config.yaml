@@ -1,0 +1,59 @@
+# HH Goa Task 2 — Experiment Configuration
+# This file is read by notebooks and src/ modules.
+# Update values based on experimental results.
+
+dataset:
+  name: ai4bharat/MSMARCO-XI
+  language: hi                  # hi, mr, bn, ta, te, en (if available)
+  split: validation
+  sample_size: 5000             # Number of examples to load initially
+  streaming: false              # Use streaming for large datasets
+  cache_dir: null               # null = default HF cache
+
+chunking:
+  strategy: sentence            # original, fixed, sentence, semantic, metadata
+  chunk_size: 700               # Characters per chunk (fixed/sentence strategies)
+  overlap: 100                  # Character overlap between chunks
+  min_chunk_size: 50            # Minimum viable chunk size
+  sentence_model: null          # Model for semantic chunking (null = use embedding model)
+
+embedding:
+  model_name: intfloat/multilingual-e5-small
+  batch_size: 64
+  normalize: true
+  max_seq_length: 512
+  query_prefix: "query: "      # E5-family models require prefixes
+  passage_prefix: "passage: "
+
+retrieval:
+  index_type: IndexFlatIP       # FAISS index type
+  top_k: 10                     # Number of results to retrieve
+  nprobe: null                  # For IVF indexes only
+  use_bm25: true                # Enable hybrid retrieval
+  bm25_weight: 0.3              # Weight for BM25 in hybrid fusion
+  dense_weight: 0.7             # Weight for dense retrieval in hybrid fusion
+  rrf_k: 60                     # RRF fusion constant
+
+evaluation:
+  num_queries: 500              # Queries for retrieval evaluation
+  recall_at_k: [1, 5, 10]      # Recall@K values to compute
+  relevance_field: is_selected  # Ground truth field in dataset
+
+latency:
+  target_ms: 200                # HH Goa Task 2 requirement
+  num_warmup: 10                # Warmup queries before measurement
+  num_benchmark: 100            # Queries for latency measurement
+  percentiles: [50, 70, 90, 95, 99, 100]
+
+finetuning:
+  enabled: false                # Only enable if baseline retrieval is insufficient
+  base_model: intfloat/multilingual-e5-small
+  learning_rate: 2.0e-5
+  epochs: 3
+  batch_size: 32
+  warmup_ratio: 0.1
+  max_negatives: 7
+  output_dir: artifacts/finetuned_model
+
+reproducibility:
+  seed: 42
