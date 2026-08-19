@@ -8,8 +8,10 @@ def test_settings_loads():
     assert settings.PORT == 8000
 
 
-def test_settings_defaults():
+def test_settings_defaults(monkeypatch):
     from backend.app.config import Settings
+    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+    monkeypatch.delenv("EMBEDDING_MODEL", raising=False)
     settings = Settings(_env_file=None)
     assert settings.DEBUG is False
     assert settings.LOG_LEVEL == "INFO"
