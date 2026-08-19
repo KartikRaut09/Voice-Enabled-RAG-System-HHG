@@ -4,11 +4,11 @@
 
 dataset:
   name: ai4bharat/MSMARCO-XI
-  language: hi                  # hi, mr, bn, ta, te, en (if available)
+  language: hi                  # hi, mr, bn, ta, te
   split: validation
-  sample_size: 5000             # Number of examples to load initially
-  streaming: false              # Use streaming for large datasets
-  cache_dir: null               # null = default HF cache
+  sample_size: 1000             # Representative sample for fast interactive Colab execution
+  streaming: true               # Direct parquet streaming from Hugging Face
+  cache_dir: null
 
 chunking:
   strategy: sentence            # original, fixed, sentence, semantic, metadata
