@@ -79,12 +79,63 @@ def create_app() -> FastAPI:
     # Global pipeline instance (lazy/configurable from default.yaml)
     import yaml
     from backend.app.pipeline import RAGPipeline
-    config_path = Path(__file__).resolve().parent.parent.parent / "configs" / "default.yaml"
+    from backend.app.embeddings import SentenceTransformerEmbedder
+    from backend.app.vector_store import FAISSVectorStore
+    from backend.app.bm25 import BM25Index
+
+    base_dir = Path(__file__).resolve().parent.parent.parent
+    config_path = base_dir / "configs" / "default.yaml"
     cfg = {}
     if config_path.exists():
         with open(config_path, "r", encoding="utf-8") as f:
             cfg = yaml.safe_load(f) or {}
-    pipeline = RAGPipeline(config=cfg)
+
+    embedder = None
+    vector_store = None
+    bm25_index = None
+
+    try:
+        embedder = SentenceTransformerEmbedder(
+            model_name=cfg.get("embedding", {}).get("model_name", "intfloat/multilingual-e5-small"),
+            device="cpu",
+            normalize=True,
+        )
+        logger.info("embedder_loaded", model="intfloat/multilingual-e5-small")
+    except Exception as e:
+        logger.warn("embedder_init_failed", error=str(e))
+
+    faiss_candidates = [
+        base_dir / "data" / "indexes" / "multilingual_e5_small_structure_aware",
+        base_dir / "data" / "indexes" / "faiss_structure_aware",
+        base_dir / "colab" / "artifacts" / "final_index",
+    ]
+    for p in faiss_candidates:
+        if p.exists() and (p / "index.faiss").exists():
+            try:
+                vector_store = FAISSVectorStore.load(p)
+                logger.info("faiss_loaded", path=str(p), total_vectors=vector_store.size)
+                break
+            except Exception as e:
+                logger.warn("faiss_load_failed", path=str(p), error=str(e))
+
+    bm25_candidates = [
+        base_dir / "data" / "indexes" / "bm25_structure_aware",
+    ]
+    for p in bm25_candidates:
+        if p.exists() and (p / "index.json").exists():
+            try:
+                bm25_index = BM25Index.load(p)
+                logger.info("bm25_loaded", path=str(p), total_chunks=bm25_index.size)
+                break
+            except Exception as e:
+                logger.warn("bm25_load_failed", path=str(p), error=str(e))
+
+    pipeline = RAGPipeline(
+        config=cfg,
+        embedder=embedder,
+        vector_store=vector_store,
+        bm25_index=bm25_index,
+    )
     app.state.pipeline = pipeline
 
     # STT Provider instance (configurable from default.yaml)
