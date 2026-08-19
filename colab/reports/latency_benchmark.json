@@ -1,0 +1,7 @@
+{
+  "p50_ms": 78.45,
+  "p70_ms": 93.2,
+  "p100_ms": 146.85,
+  "sla_target_ms": 200.0,
+  "sla_status": "PASS"
+}
