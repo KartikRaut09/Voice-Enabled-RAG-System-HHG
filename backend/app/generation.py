@@ -384,18 +384,27 @@ class OpenAICompatibleProvider:
 
 def get_llm_provider(config: dict | None = None) -> LLMProvider:
     """Factory creating LLM provider based on config and environment."""
-    cfg = (config or {}).get("generation", {})
-    provider_name = os.environ.get("LLM_PROVIDER") or cfg.get("provider", "mock")
+    from backend.app.config import get_settings
+    settings = get_settings()
 
-    if provider_name == "groq":
+    cfg = (config or {}).get("generation", {})
+    provider_name = os.environ.get("LLM_PROVIDER") or settings.LLM_PROVIDER or cfg.get("provider")
+
+    groq_api_key = os.environ.get("GROQ_API_KEY") or settings.GROQ_API_KEY or os.environ.get("LLM_API_KEY") or settings.LLM_API_KEY
+
+    # If groq_api_key is present and provider is not forced to something else, activate groq
+    if (not provider_name or provider_name in ("mock", "groq")) and groq_api_key:
+        provider_name = "groq"
+
+    if provider_name == "groq" and groq_api_key:
         return OpenAICompatibleProvider(
-            api_key=os.environ.get("GROQ_API_KEY"),
+            api_key=groq_api_key,
             provider_name="groq",
             model_name=cfg.get("model_name", "llama-3.1-8b-instant"),
         )
-    elif provider_name == "openai":
+    elif provider_name == "openai" and (os.environ.get("OPENAI_API_KEY") or settings.LLM_API_KEY):
         return OpenAICompatibleProvider(
-            api_key=os.environ.get("OPENAI_API_KEY"),
+            api_key=os.environ.get("OPENAI_API_KEY") or settings.LLM_API_KEY,
             provider_name="openai",
             model_name=cfg.get("model_name", "gpt-4o-mini"),
         )
